@@ -495,6 +495,19 @@ body {
   font-size: 14px;
 }
 
+/* Unread badge on chat tab */
+.tab .badge {
+  display: none;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 36px);
+}
+.tab .badge.show { display: block; }
+
 /* Update banner */
 .update-banner {
   position: fixed;
@@ -572,7 +585,7 @@ body {
   <div class="tabs">
     <button class="tab active" data-tab="schedule" onclick="switchTab('schedule')">Schedule</button>
     <button class="tab" data-tab="my" onclick="switchTab('my')">My Sessions</button>
-    <button class="tab" data-tab="chat" onclick="switchTab('chat')">Team Chat</button>
+    <button class="tab" data-tab="chat" onclick="switchTab('chat')">Team Chat<span class="badge" id="chatBadge"></span></button>
   </div>
 
   <div id="loadingView" class="loading">
@@ -657,6 +670,8 @@ async function loadData() {
       document.getElementById('lockedName').textContent = currentUser;
       document.getElementById('app').style.display = 'block';
       render();
+      // Check for new chat messages in the background
+      checkForNewMessages();
     } else {
       // First-time visitor — show welcome screen
       showWelcomeScreen();
@@ -926,6 +941,7 @@ function switchTab(tab) {
   else if (tab === 'chat') {
     document.getElementById('chatSection').classList.add('active');
     if (!chatLoaded) loadMessages();
+    markChatRead();
     scrollChatToBottom();
   }
 }
@@ -947,6 +963,7 @@ function showToast(msg) {
 let chatLoaded = false;
 let chatMessages = [];
 let chatRefreshTimer = null;
+let lastSeenMessageCount = parseInt(getStored('ak_chat_seen') || '0');
 
 // Stable color palette for member names
 const NAME_COLORS = ['#e94560','#00c853','#448aff','#ffab00','#e040fb','#00bcd4','#ff6e40','#76ff03','#ea80fc','#ffd740','#69f0ae','#40c4ff'];
@@ -966,11 +983,39 @@ async function loadMessages() {
     if (data.error) throw new Error(data.error);
     chatMessages = data.messages || [];
     chatLoaded = true;
+    updateChatBadge();
     renderMessages();
+    // If currently viewing chat, mark as read
+    if (currentTab === 'chat') markChatRead();
     startChatRefresh();
   } catch(err) {
     document.getElementById('chatEmpty').textContent = 'Could not load messages.';
   }
+}
+
+async function checkForNewMessages() {
+  try {
+    const res = await fetch(API_URL + '?action=getMessages&token=' + API_TOKEN);
+    const data = await res.json();
+    if (data.messages && data.messages.length > lastSeenMessageCount) {
+      document.getElementById('chatBadge').classList.add('show');
+    }
+  } catch(e) {}
+}
+
+function updateChatBadge() {
+  const badge = document.getElementById('chatBadge');
+  if (chatMessages.length > lastSeenMessageCount) {
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+function markChatRead() {
+  lastSeenMessageCount = chatMessages.length;
+  setStored('ak_chat_seen', String(lastSeenMessageCount));
+  document.getElementById('chatBadge').classList.remove('show');
 }
 
 function renderMessages() {
