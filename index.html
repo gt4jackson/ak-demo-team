@@ -441,7 +441,7 @@ body {
 
 <script>
 // ---- State ----
-let API_URL = '';
+let API_URL = 'https://script.google.com/macros/s/AKfycbzGT_Z7pLRR2SRROUPjuKNewCzMAJ7r3hTzLHLt0aRQmzRLAXRzNNKRA2zOQJ7M4GLB/exec';
 let scheduleData = null;
 let currentUser = '';
 let currentFilter = 'upcoming';
@@ -449,11 +449,6 @@ let currentTab = 'schedule';
 
 // ---- Init ----
 window.addEventListener('load', () => {
-  API_URL = getStored('ak_api_url');
-  if (!API_URL) {
-    document.getElementById('setupScreen').style.display = 'block';
-    return;
-  }
   document.getElementById('app').style.display = 'block';
   loadData();
 });
