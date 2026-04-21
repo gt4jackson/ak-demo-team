@@ -533,13 +533,22 @@ body {
   <button onclick="applyUpdate()">Update Now</button>
 </div>
 
-<!-- Setup screen (shown if no API URL configured) -->
-<div id="setupScreen" class="setup-screen" style="display:none;">
-  <h2>AK Demo Team</h2>
-  <p>Enter your Google Apps Script Web App URL to connect to the team sheet.</p>
-  <input id="apiUrlInput" class="setup-input" placeholder="https://script.google.com/macros/s/.../exec">
-  <button class="setup-btn" onclick="saveApiUrl()">Connect</button>
-  <p style="margin-top:20px; font-size:12px;">See DEPLOY.md for setup instructions.</p>
+<!-- Welcome screen — pick your name on first visit -->
+<div id="welcomeScreen" style="display:none;">
+  <div class="header">
+    <h1><span>AK</span> Demo Team</h1>
+    <div class="header-sub">Action Karate Newtown</div>
+  </div>
+  <div class="setup-screen">
+    <h2>Welcome!</h2>
+    <p>Select your name to get started. This will be saved so you don't have to pick it again.</p>
+    <select id="welcomeSelect" class="setup-input" style="padding:14px 12px; font-size:16px; appearance:auto; -webkit-appearance:auto;">
+      <option value="" disabled selected>Choose your name...</option>
+    </select>
+    <button class="setup-btn" onclick="confirmName()" id="confirmBtn" disabled>That's Me — Let's Go</button>
+    <p style="margin-top:24px; font-size:13px; color:var(--text-dim);">Not on the list?</p>
+    <button class="setup-btn" style="background:var(--card); border:1px solid var(--border); margin-top:8px; font-size:14px;" onclick="requestAccess()">Request to be added</button>
+  </div>
 </div>
 
 <!-- Main app -->
@@ -554,9 +563,10 @@ body {
     <div class="header-sub">Action Karate Newtown</div>
   </div>
 
-  <div class="user-bar">
+  <div class="user-bar" id="userBar">
     <label>You:</label>
-    <select id="userSelect" onchange="saveUser()"></select>
+    <span id="lockedName" style="flex:1; font-size:15px; font-weight:600;"></span>
+    <button onclick="changeName()" style="background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-dim); font-size:12px; padding:5px 10px; cursor:pointer;">Change</button>
   </div>
 
   <div class="tabs">
@@ -619,7 +629,6 @@ let currentTab = 'schedule';
 
 // ---- Init ----
 window.addEventListener('load', () => {
-  document.getElementById('app').style.display = 'block';
   loadData();
 });
 
@@ -632,20 +641,6 @@ function setStored(key, val) {
   try { localStorage.setItem(key, val); } catch(e) { memStore[key] = val; }
 }
 
-// ---- Setup ----
-function saveApiUrl() {
-  const url = document.getElementById('apiUrlInput').value.trim();
-  if (!url.startsWith('https://script.google.com')) {
-    showToast('Please enter a valid Apps Script URL');
-    return;
-  }
-  setStored('ak_api_url', url);
-  API_URL = url;
-  document.getElementById('setupScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  loadData();
-}
-
 // ---- Data loading ----
 async function loadData() {
   document.getElementById('loadingView').style.display = 'block';
@@ -655,8 +650,17 @@ async function loadData() {
     scheduleData = await res.json();
     if (scheduleData.error) throw new Error(scheduleData.error);
 
-    populateUserSelect();
-    render();
+    const savedName = getStored('ak_user_locked');
+    if (savedName && scheduleData.members.includes(savedName)) {
+      // Returning user — go straight to app
+      currentUser = savedName;
+      document.getElementById('lockedName').textContent = currentUser;
+      document.getElementById('app').style.display = 'block';
+      render();
+    } else {
+      // First-time visitor — show welcome screen
+      showWelcomeScreen();
+    }
     document.getElementById('refreshNote').textContent = 'Updated ' + new Date().toLocaleTimeString();
   } catch(err) {
     document.getElementById('errorView').textContent = 'Could not load data: ' + err.message;
@@ -665,28 +669,60 @@ async function loadData() {
   document.getElementById('loadingView').style.display = 'none';
 }
 
-function populateUserSelect() {
-  const sel = document.getElementById('userSelect');
-  sel.innerHTML = '';
+// ---- Welcome / Name Selection ----
+function showWelcomeScreen() {
+  document.getElementById('welcomeScreen').style.display = 'block';
+  document.getElementById('app').style.display = 'none';
+  const sel = document.getElementById('welcomeSelect');
+  // Clear existing options (keep the placeholder)
+  sel.innerHTML = '<option value="" disabled selected>Choose your name...</option>';
   scheduleData.members.forEach(name => {
     const opt = document.createElement('option');
     opt.value = name;
     opt.textContent = name;
     sel.appendChild(opt);
   });
-  const saved = getStored('ak_user');
-  if (saved && scheduleData.members.includes(saved)) {
-    sel.value = saved;
-    currentUser = saved;
-  } else {
-    currentUser = scheduleData.members[0] || '';
+  sel.addEventListener('change', () => {
+    document.getElementById('confirmBtn').disabled = !sel.value;
+  });
+}
+
+function confirmName() {
+  const sel = document.getElementById('welcomeSelect');
+  if (!sel.value) return;
+  currentUser = sel.value;
+  setStored('ak_user_locked', currentUser);
+  document.getElementById('lockedName').textContent = currentUser;
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  render();
+  showToast('Welcome, ' + currentUser + '!');
+}
+
+function changeName() {
+  if (confirm('Switch to a different name? This will change who you appear as in the chat and attendance.')) {
+    showWelcomeScreen();
   }
 }
 
-function saveUser() {
-  currentUser = document.getElementById('userSelect').value;
-  setStored('ak_user', currentUser);
-  render();
+async function requestAccess() {
+  const name = prompt('What name should we add you as? (e.g., "Mr Dave" or "Ms Sarah")');
+  if (!name || !name.trim()) return;
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'postMessage',
+        token: API_TOKEN,
+        name: '(New Member Request)',
+        message: name.trim() + ' is requesting to be added to the demo team roster.'
+      })
+    });
+    alert('Your request has been sent to the team chat! Mr Tanner will add you to the roster.');
+  } catch(err) {
+    alert('Could not send request. Please text Mr Tanner directly.');
+  }
 }
 
 // ---- Rendering ----
