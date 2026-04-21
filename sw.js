@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ak-demo-v1';
+const CACHE_NAME = 'ak-demo-v2';
 const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -16,9 +16,10 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for API calls, cache-first for assets
+  // Never cache API calls — always go to network. Cache-first for static assets only.
   if (e.request.url.includes('script.google.com')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    e.respondWith(fetch(e.request));
+    return;
   } else {
     e.respondWith(
       caches.match(e.request).then(r => r || fetch(e.request))
