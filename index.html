@@ -636,6 +636,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbzKpufJ_7cQgktbPq16qas2l0LULp6FZF26kFfZNekJ2yu14kN6A8FwAxIHkuUf_hWE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
+const APP_VERSION = '2.0';
 let scheduleData = null;
 let currentUser = '';
 let currentFilter = 'upcoming';
@@ -1143,37 +1144,39 @@ document.addEventListener('touchend', async () => {
   ptr.style.height = '0';
 });
 
-// ---- Service Worker & Auto-Update ----
-let pendingWorker = null;
-
+// ---- Service Worker ----
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    // Check for updates every 5 minutes
-    setInterval(() => reg.update(), 5 * 60 * 1000);
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New version ready — show banner
-          pendingWorker = newWorker;
-          document.getElementById('updateBanner').classList.add('show');
-        }
-      });
-    });
-  }).catch(() => {});
-
-  // Reload when the new service worker takes over
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
+// ---- Version Check (runs on every app open) ----
+async function checkForAppUpdate() {
+  try {
+    const res = await fetch('./version.json?t=' + Date.now()); // cache-bust
+    const data = await res.json();
+    if (data.version && data.version !== APP_VERSION) {
+      document.getElementById('updateBanner').classList.add('show');
+    }
+  } catch(e) {}
 }
 
 function applyUpdate() {
-  if (pendingWorker) {
-    pendingWorker.postMessage('skipWaiting');
+  // Clear service worker cache and hard reload
+  if ('caches' in window) {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
   }
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+    });
+  }
+  // Force reload from server
+  setTimeout(() => window.location.reload(true), 300);
 }
+
+// Check on load and every 5 minutes
+checkForAppUpdate();
+setInterval(checkForAppUpdate, 5 * 60 * 1000);
 </script>
 </body>
 </html>
