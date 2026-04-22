@@ -253,6 +253,8 @@ body {
 .headcount span { font-weight: 700; }
 .headcount .yes-count { color: var(--yes); }
 .headcount .maybe-count { color: var(--maybe); }
+.headcount .no-count { color: var(--no); }
+.headcount .pending-count { color: var(--text-dim); }
 
 /* Loading & Error */
 .loading {
@@ -650,7 +652,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbzKpufJ_7cQgktbPq16qas2l0LULp6FZF26kFfZNekJ2yu14kN6A8FwAxIHkuUf_hWE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 let scheduleData = null;
 let currentUser = '';
 let currentFilter = 'upcoming';
@@ -797,7 +799,8 @@ function renderSessions() {
     const myStatus = s.attendance[currentUser] || '';
     const yesCount = Object.values(s.attendance).filter(v => v === 'yes').length;
     const maybeCount = Object.values(s.attendance).filter(v => v === 'maybe').length;
-    const totalResponded = Object.values(s.attendance).filter(v => v).length;
+    const noCount = Object.values(s.attendance).filter(v => v === 'no').length;
+    const noResponse = scheduleData.members.length - yesCount - maybeCount - noCount;
     const typeLower = s.type.toLowerCase();
     const typeClass = typeLower.includes('monthly') ? 'monthly' : typeLower.includes('tournament') ? 'tournament' : typeLower.includes('performance') ? 'performance' : 'weekly';
     const id = 'session-' + idx;
@@ -830,7 +833,7 @@ function renderSessions() {
             Out
           </button>
         </div>` : ''}
-        <div class="headcount"><span class="yes-count">${yesCount}</span> in${maybeCount ? ` &middot; <span class="maybe-count">${maybeCount}</span> maybe` : ''}</div>
+        <div class="headcount"><span class="yes-count">${yesCount}</span> in &middot; <span class="maybe-count">${maybeCount}</span> maybe &middot; <span class="no-count">${noCount}</span> out &middot; <span class="pending-count">${noResponse}</span> pending</div>
         <div class="session-detail" id="${id}">
           <div class="attendance-list">
             <h4>Team Availability</h4>
