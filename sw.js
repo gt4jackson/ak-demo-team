@@ -1,5 +1,5 @@
-const CACHE_NAME = 'ak-demo-v3';
-const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'ak-demo-v4';
+const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './ak-logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
