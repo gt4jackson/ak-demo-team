@@ -652,7 +652,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbzKpufJ_7cQgktbPq16qas2l0LULp6FZF26kFfZNekJ2yu14kN6A8FwAxIHkuUf_hWE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 let scheduleData = null;
 let currentUser = '';
 let currentFilter = 'upcoming';
@@ -689,7 +689,7 @@ async function loadData() {
       document.getElementById('app').style.display = 'block';
       render();
       // Check for new chat messages in the background
-      checkForNewMessages();
+      preloadChat();
     } else {
       // First-time visitor — show welcome screen
       showWelcomeScreen();
@@ -935,6 +935,7 @@ function switchTab(tab) {
   else if (tab === 'chat') {
     document.getElementById('chatSection').classList.add('active');
     if (!chatLoaded) loadMessages();
+    else renderMessages();
     markChatRead();
     scrollChatToBottom();
   }
@@ -970,6 +971,25 @@ function getNameColor(name) {
   return nameColorMap[name];
 }
 
+// Show cached messages instantly, then fetch fresh data
+function restoreCachedChat() {
+  try {
+    const cached = getStored('ak_chat_cache');
+    if (cached) {
+      chatMessages = JSON.parse(cached);
+      chatLoaded = true;
+      updateChatBadge();
+      renderMessages();
+    }
+  } catch(e) {}
+}
+
+// Preload chat in background right after schedule loads
+async function preloadChat() {
+  restoreCachedChat();
+  await loadMessages();
+}
+
 async function loadMessages() {
   try {
     const res = await fetch(API_URL + '?action=getMessages&token=' + API_TOKEN);
@@ -977,24 +997,17 @@ async function loadMessages() {
     if (data.error) throw new Error(data.error);
     chatMessages = data.messages || [];
     chatLoaded = true;
+    // Cache messages for instant load next time
+    try { setStored('ak_chat_cache', JSON.stringify(chatMessages)); } catch(e) {}
     updateChatBadge();
     renderMessages();
-    // If currently viewing chat, mark as read
     if (currentTab === 'chat') markChatRead();
     startChatRefresh();
   } catch(err) {
-    document.getElementById('chatEmpty').textContent = 'Could not load messages.';
-  }
-}
-
-async function checkForNewMessages() {
-  try {
-    const res = await fetch(API_URL + '?action=getMessages&token=' + API_TOKEN);
-    const data = await res.json();
-    if (data.messages && data.messages.length > lastSeenMessageCount) {
-      document.getElementById('chatBadge').classList.add('show');
+    if (!chatLoaded) {
+      document.getElementById('chatEmpty').textContent = 'Could not load messages.';
     }
-  } catch(e) {}
+  }
 }
 
 function updateChatBadge() {
