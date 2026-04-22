@@ -252,6 +252,7 @@ body {
 }
 .headcount span { font-weight: 700; }
 .headcount .yes-count { color: var(--yes); }
+.headcount .maybe-count { color: var(--maybe); }
 
 /* Loading & Error */
 .loading {
@@ -612,7 +613,6 @@ body {
 
   <!-- Schedule tab -->
   <div id="scheduleSection" class="section active">
-    <div class="stats-bar" id="statsBar"></div>
     <div class="filter-bar">
       <button class="filter-pill active" data-filter="upcoming" onclick="setFilter('upcoming')">Upcoming</button>
       <button class="filter-pill" data-filter="all" onclick="setFilter('all')">All</button>
@@ -650,7 +650,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbzKpufJ_7cQgktbPq16qas2l0LULp6FZF26kFfZNekJ2yu14kN6A8FwAxIHkuUf_hWE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.2';
 let scheduleData = null;
 let currentUser = '';
 let currentFilter = 'upcoming';
@@ -768,35 +768,7 @@ function parseDate(dateStr) {
 }
 
 function renderStats() {
-  const now = new Date();
-  now.setHours(0,0,0,0);
-  const upcoming = scheduleData.sessions.filter(s => parseDate(s.date) >= now);
-  const nextSession = upcoming[0];
-
-  let myYes = 0;
-  scheduleData.sessions.forEach(s => {
-    if (s.attendance[currentUser] === 'yes') myYes++;
-  });
-
-  const bar = document.getElementById('statsBar');
-  bar.innerHTML = `
-    <div class="stat-card accent">
-      <div class="num">${nextSession ? formatShortDate(nextSession.date) : '--'}</div>
-      <div class="label">Next Practice</div>
-    </div>
-    <div class="stat-card">
-      <div class="num">${upcoming.length}</div>
-      <div class="label">Upcoming</div>
-    </div>
-    <div class="stat-card">
-      <div class="num">${myYes}</div>
-      <div class="label">My Yes's</div>
-    </div>
-    <div class="stat-card">
-      <div class="num">${scheduleData.members.length}</div>
-      <div class="label">Team Size</div>
-    </div>
-  `;
+  // Stats bar removed — attendance counts now shown per session card
 }
 
 function formatShortDate(dateStr) {
@@ -824,6 +796,7 @@ function renderSessions() {
     const isUpcoming = !isPast;
     const myStatus = s.attendance[currentUser] || '';
     const yesCount = Object.values(s.attendance).filter(v => v === 'yes').length;
+    const maybeCount = Object.values(s.attendance).filter(v => v === 'maybe').length;
     const totalResponded = Object.values(s.attendance).filter(v => v).length;
     const typeLower = s.type.toLowerCase();
     const typeClass = typeLower.includes('monthly') ? 'monthly' : typeLower.includes('tournament') ? 'tournament' : typeLower.includes('performance') ? 'performance' : 'weekly';
@@ -857,7 +830,7 @@ function renderSessions() {
             Out
           </button>
         </div>` : ''}
-        <div class="headcount"><span class="yes-count">${yesCount}</span> in &middot; ${totalResponded} responded</div>
+        <div class="headcount"><span class="yes-count">${yesCount}</span> in${maybeCount ? ` &middot; <span class="maybe-count">${maybeCount}</span> maybe` : ''}</div>
         <div class="session-detail" id="${id}">
           <div class="attendance-list">
             <h4>Team Availability</h4>
