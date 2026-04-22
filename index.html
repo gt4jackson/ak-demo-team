@@ -617,7 +617,7 @@ body {
   <div id="scheduleSection" class="section active">
     <div class="filter-bar">
       <button class="filter-pill active" data-filter="upcoming" onclick="setFilter('upcoming')">Upcoming</button>
-      <button class="filter-pill" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-pill" data-filter="past" onclick="setFilter('past')">Past</button>
       <button class="filter-pill" data-filter="thursday" onclick="setFilter('thursday')">Thursdays</button>
       <button class="filter-pill" data-filter="sunday" onclick="setFilter('sunday')">Sundays</button>
     </div>
@@ -652,7 +652,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbzKpufJ_7cQgktbPq16qas2l0LULp6FZF26kFfZNekJ2yu14kN6A8FwAxIHkuUf_hWE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 let scheduleData = null;
 let currentUser = '';
 let currentFilter = 'upcoming';
@@ -784,6 +784,7 @@ function renderSessions() {
   let sessions = scheduleData.sessions;
 
   if (currentFilter === 'upcoming') sessions = sessions.filter(s => parseDate(s.date) >= now);
+  else if (currentFilter === 'past') sessions = sessions.filter(s => parseDate(s.date) < now).reverse();
   else if (currentFilter === 'thursday') sessions = sessions.filter(s => s.day === 'Thursday');
   else if (currentFilter === 'sunday') sessions = sessions.filter(s => s.day === 'Sunday');
 
