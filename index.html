@@ -652,10 +652,18 @@ body {
 
 <script>
 // ---- State ----
-let API_URL = 'https://script.google.com/macros/s/AKfycbzKpufJ_7cQgktbPq16qas2l0LULp6FZF26kFfZNekJ2yu14kN6A8FwAxIHkuUf_hWE/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycbzsM3VWFL7-JUwpjBLb_l7obPrQN4yWX4d15Hi6GSWllOCL31Qvz3_jKUwUFfaKoHTC/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.8';
 let scheduleData = null;
+const COACH_ROLES = ['coach', 'administrator'];
+function isCoach(name) {
+  if (!scheduleData || !scheduleData.memberRoles) return false;
+  return COACH_ROLES.includes((scheduleData.memberRoles[name] || '').toLowerCase());
+}
+function getTeamMembers() {
+  return scheduleData.members.filter(m => !isCoach(m));
+}
 let currentUser = '';
 let currentFilter = 'upcoming';
 let currentTab = 'schedule';
@@ -800,10 +808,13 @@ function renderSessions() {
     const isPast = parseDate(s.date) < now;
     const isUpcoming = !isPast;
     const myStatus = s.attendance[currentUser] || '';
-    const yesCount = Object.values(s.attendance).filter(v => v === 'yes').length;
-    const maybeCount = Object.values(s.attendance).filter(v => v === 'maybe').length;
-    const noCount = Object.values(s.attendance).filter(v => v === 'no').length;
-    const noResponse = scheduleData.members.length - yesCount - maybeCount - noCount;
+    const teamOnly = getTeamMembers();
+    const teamAtt = teamOnly.map(m => s.attendance[m] || '');
+    const yesCount = teamAtt.filter(v => v === 'yes').length;
+    const maybeCount = teamAtt.filter(v => v === 'maybe').length;
+    const noCount = teamAtt.filter(v => v === 'no').length;
+    const noResponse = teamOnly.length - yesCount - maybeCount - noCount;
+    const userIsCoach = isCoach(currentUser);
     const typeLower = s.type.toLowerCase();
     const typeClass = typeLower.includes('monthly') ? 'monthly' : typeLower.includes('tournament') ? 'tournament' : typeLower.includes('performance') ? 'performance' : 'weekly';
     const id = 'session-' + idx;
@@ -821,7 +832,7 @@ function renderSessions() {
             <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">${s.duration}</div>
           </div>
         </div>
-        ${!isPast ? `
+        ${!isPast && !userIsCoach ? `
         <div class="rsvp-bar">
           <button class="rsvp-btn yes ${myStatus === 'yes' ? 'selected' : ''}" onclick="rsvp('${s.date}','yes',this)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
@@ -840,11 +851,16 @@ function renderSessions() {
         <div class="session-detail" id="${id}">
           <div class="attendance-list">
             <h4>Team Availability</h4>
-            ${scheduleData.members.map(m => {
+            ${getTeamMembers().map(m => {
               const st = s.attendance[m] || '';
               const label = st === 'yes' ? 'In' : st === 'no' ? 'Out' : st === 'maybe' ? 'Maybe' : '—';
               const cls = st || 'none';
               return `<div class="att-row"><span class="att-name">${m}</span><span class="att-status ${cls}">${label}</span></div>`;
+            }).join('')}
+            ${scheduleData.members.filter(m => isCoach(m)).length ? '<h4 style="margin-top:12px;">Coaches</h4>' : ''}
+            ${scheduleData.members.filter(m => isCoach(m)).map(m => {
+              const role = scheduleData.memberRoles[m] || 'Coach';
+              return `<div class="att-row"><span class="att-name">${m}</span><span class="att-status none" style="font-style:italic;">${role}</span></div>`;
             }).join('')}
           </div>
         </div>
@@ -1039,7 +1055,7 @@ function renderMessages() {
     return `
       <div class="msg ${isMine ? 'mine' : 'other'}">
         <div class="msg-name" style="color:${color}">${m.name}</div>
-        <div class="msg-text">${escapeHtml(m.message)}</div>
+        <div class="msg-text">${linkify(m.message)}</div>
         <div class="msg-time">${m.timestamp}</div>
       </div>
     `;
@@ -1051,6 +1067,14 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function linkify(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#448aff; word-break:break-all;">$1</a>'
+  );
 }
 
 function scrollChatToBottom() {
