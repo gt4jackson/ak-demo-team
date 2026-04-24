@@ -7,6 +7,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a1a2e">
 <title>AK Demo Team</title>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JRY55TDG8R"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-JRY55TDG8R', { send_page_views: true });
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -806,7 +814,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbw5KOqbBgFwfcyBsOBOsFnnX6RGZEkRZO2_OoAgYygz2_mGxYcF4L1KdHmt--O7JDlj/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -847,6 +855,8 @@ async function loadData() {
     if (savedName && scheduleData.members.includes(savedName)) {
       // Returning user — go straight to app
       currentUser = savedName;
+      gtag('set', 'user_properties', { team_member: currentUser });
+      gtag('event', 'returning_visit', { team_member: currentUser });
       document.getElementById('lockedName').textContent = currentUser;
       document.getElementById('app').style.display = 'block';
       render();
@@ -890,6 +900,8 @@ function confirmName() {
   document.getElementById('lockedName').textContent = currentUser;
   document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  gtag('set', 'user_properties', { team_member: currentUser });
+  gtag('event', 'login', { method: 'name_select', team_member: currentUser });
   render();
   showToast('Welcome, ' + currentUser + '!');
 }
@@ -1059,6 +1071,7 @@ function toggleDetail(id) {
 
 async function rsvp(dateStr, status, btnEl) {
   if (!currentUser) { showToast('Select your name first'); return; }
+  gtag('event', 'rsvp', { date: dateStr, status: status, team_member: currentUser });
 
   // Find current status
   const session = scheduleData.sessions.find(s => s.date === dateStr);
@@ -1096,6 +1109,7 @@ async function rsvp(dateStr, status, btnEl) {
 
 function switchTab(tab) {
   currentTab = tab;
+  gtag('event', 'tab_view', { tab_name: tab, team_member: currentUser });
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('chatSection').classList.remove('active');
@@ -1246,6 +1260,7 @@ async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text || !currentUser) return;
+  gtag('event', 'chat_message', { team_member: currentUser });
 
   const btn = document.getElementById('sendBtn');
   btn.disabled = true;
@@ -1352,6 +1367,7 @@ function renderSkills() {
 }
 
 async function setSkill(skill, rating, btn) {
+  gtag('event', 'skill_rating', { skill_name: skill, rating: rating, team_member: currentUser });
   // Optimistic UI
   const row = btn.parentElement;
   row.querySelectorAll('.skill-dot').forEach(d => d.classList.remove('active'));
