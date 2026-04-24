@@ -804,9 +804,9 @@ body {
 
 <script>
 // ---- State ----
-let API_URL = 'https://script.google.com/macros/s/AKfycby8GxyyfvPq1gGT3OEWx1zYC2axQfZ9tUA5oFKQqmPOSmjaO0i7iiGX_fjjye9JLqM/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycbw5KOqbBgFwfcyBsOBOsFnnX6RGZEkRZO2_OoAgYygz2_mGxYcF4L1KdHmt--O7JDlj/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1323,14 +1323,15 @@ function renderSkills() {
 
   html += skillsData.skills.map(skill => {
     const current = myRatings[skill];
-    const currentVal = (current === null || current === undefined) ? -1 : current;
+    const currentVal = (current === null || current === undefined) ? -1 : Number(current);
+    const safeSkill = skill.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     return `
       <div class="skill-row">
         <div class="skill-name">${escapeHtml(skill)}</div>
         <div class="skill-dots">
           ${[0,1,2,3].map(n => `
             <button class="skill-dot level-${n} ${currentVal === n ? 'active' : ''}"
-                    onclick="setSkill('${escapeHtml(skill)}', ${n}, this)">${n}</button>
+                    onclick="setSkill('${safeSkill}', ${n}, this)">${n}</button>
           `).join('')}
         </div>
       </div>
