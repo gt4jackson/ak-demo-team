@@ -326,6 +326,74 @@ body {
   text-decoration: none;
 }
 
+/* My Skills */
+.skill-row {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  padding: 14px 16px;
+}
+.skill-name { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.skill-dots {
+  display: flex;
+  gap: 8px;
+}
+.skill-dot {
+  width: 40px; height: 36px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  font-size: 14px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.skill-dot.active {
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.2);
+  color: var(--accent);
+}
+.skill-dot.level-1.active { border-color: #ffab00; background: rgba(255,171,0,0.2); color: #ffab00; }
+.skill-dot.level-2.active { border-color: #448aff; background: rgba(68,138,255,0.2); color: #448aff; }
+.skill-dot.level-3.active { border-color: #00c853; background: rgba(0,200,83,0.2); color: #00c853; }
+.skill-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.skill-legend span { display: flex; align-items: center; gap: 4px; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.suggest-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.suggest-input {
+  flex: 1;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.suggest-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* Loading & Error */
 .loading {
   text-align: center;
@@ -675,6 +743,7 @@ body {
     <button class="tab" data-tab="my" onclick="switchTab('my')">My Sessions</button>
     <button class="tab" data-tab="chat" onclick="switchTab('chat')">Team Chat<span class="badge" id="chatBadge"></span></button>
     <button class="tab" data-tab="resources" onclick="switchTab('resources')">Resources</button>
+    <button class="tab" data-tab="skills" onclick="switchTab('skills')">My Skills</button>
   </div>
 
   <div id="loadingView" class="loading">
@@ -714,6 +783,13 @@ body {
     </div>
   </div>
 
+  <!-- My Skills tab -->
+  <div id="skillsSection" class="section">
+    <div id="skillsList">
+      <p style="text-align:center; color:var(--text-dim); padding:40px;">Loading skills...</p>
+    </div>
+  </div>
+
   <!-- Resources tab -->
   <div id="resourcesSection" class="section">
     <div id="resourcesList">
@@ -728,9 +804,9 @@ body {
 
 <script>
 // ---- State ----
-let API_URL = 'https://script.google.com/macros/s/AKfycbyowQKkPc3ZXXv74JogfarWZWO2NOoE5cDao7SB7IQ9EaSUl_oxGZ4iLawYEo05xrNW/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycby8GxyyfvPq1gGT3OEWx1zYC2axQfZ9tUA5oFKQqmPOSmjaO0i7iiGX_fjjye9JLqM/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.2';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1035,6 +1111,9 @@ function switchTab(tab) {
   } else if (tab === 'resources') {
     document.getElementById('resourcesSection').classList.add('active');
     if (!resourcesLoaded) loadResources();
+  } else if (tab === 'skills') {
+    document.getElementById('skillsSection').classList.add('active');
+    if (!skillsLoaded) loadSkills();
   }
 }
 
@@ -1205,6 +1284,127 @@ function startChatRefresh() {
   chatRefreshTimer = setInterval(() => {
     if (currentTab === 'chat') loadMessages();
   }, 15000);
+}
+
+// ---- My Skills ----
+let skillsLoaded = false;
+let skillsData = { skills: [], members: {} };
+const SKILL_LABELS = ['None', 'Interested', 'Practicing', 'Ready'];
+
+async function loadSkills() {
+  try {
+    const res = await fetch(API_URL + '?action=getSkills&token=' + API_TOKEN);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    skillsData = data;
+    skillsLoaded = true;
+    renderSkills();
+  } catch(err) {
+    document.getElementById('skillsList').innerHTML =
+      '<p style="text-align:center; color:var(--text-dim); padding:40px;">Could not load skills.</p>';
+  }
+}
+
+function renderSkills() {
+  const container = document.getElementById('skillsList');
+  const myRatings = skillsData.members[currentUser] || {};
+
+  if (skillsData.skills.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px;">No skills set up yet.</p>';
+    return;
+  }
+
+  let html = '<div class="skill-legend">';
+  html += '<span><span class="legend-swatch" style="background:var(--text-dim);"></span> 0 = None</span>';
+  html += '<span><span class="legend-swatch" style="background:#ffab00;"></span> 1 = Interested</span>';
+  html += '<span><span class="legend-swatch" style="background:#448aff;"></span> 2 = Practicing</span>';
+  html += '<span><span class="legend-swatch" style="background:#00c853;"></span> 3 = Ready</span>';
+  html += '</div>';
+
+  html += skillsData.skills.map(skill => {
+    const current = myRatings[skill];
+    const currentVal = (current === null || current === undefined) ? -1 : current;
+    return `
+      <div class="skill-row">
+        <div class="skill-name">${escapeHtml(skill)}</div>
+        <div class="skill-dots">
+          ${[0,1,2,3].map(n => `
+            <button class="skill-dot level-${n} ${currentVal === n ? 'active' : ''}"
+                    onclick="setSkill('${escapeHtml(skill)}', ${n}, this)">${n}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  html += `
+    <div style="margin-top:20px; padding:16px; background:var(--card); border-radius:var(--radius); border:1px solid var(--border);">
+      <div style="font-size:14px; font-weight:600; margin-bottom:10px;">Suggest a New Weapon or Trick</div>
+      <div class="suggest-bar">
+        <input id="suggestInput" class="suggest-input" placeholder="e.g., Nunchucks, Backflip..." maxlength="50">
+        <button class="suggest-btn" onclick="suggestSkill()">Add</button>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+async function setSkill(skill, rating, btn) {
+  // Optimistic UI
+  const row = btn.parentElement;
+  row.querySelectorAll('.skill-dot').forEach(d => d.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Update local data
+  if (!skillsData.members[currentUser]) skillsData.members[currentUser] = {};
+  skillsData.members[currentUser][skill] = rating;
+
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'updateSkill',
+        name: currentUser,
+        skill: skill,
+        rating: rating
+      })
+    });
+    showToast(skill + ' updated to ' + SKILL_LABELS[rating]);
+  } catch(err) {
+    showToast('Failed to save — try again');
+  }
+}
+
+async function suggestSkill() {
+  const input = document.getElementById('suggestInput');
+  const name = input.value.trim();
+  if (!name) return;
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'suggestSkill',
+        skill: name
+      })
+    });
+    const data = await res.json();
+    if (data.error) {
+      showToast(data.error);
+      return;
+    }
+    input.value = '';
+    showToast(name + ' added!');
+    // Reload skills to show the new column
+    skillsData.skills.push(name);
+    if (skillsData.members[currentUser]) skillsData.members[currentUser][name] = null;
+    renderSkills();
+  } catch(err) {
+    showToast('Failed to add — try again');
+  }
 }
 
 // ---- Resources ----
