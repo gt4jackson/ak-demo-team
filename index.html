@@ -806,7 +806,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycby8GxyyfvPq1gGT3OEWx1zYC2axQfZ9tUA5oFKQqmPOSmjaO0i7iiGX_fjjye9JLqM/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1289,7 +1289,7 @@ function startChatRefresh() {
 // ---- My Skills ----
 let skillsLoaded = false;
 let skillsData = { skills: [], members: {} };
-const SKILL_LABELS = ['None', 'Interested', 'Practicing', 'Ready'];
+const SKILL_LABELS = ['No Interest/Ability', 'Low Interest/Ability', 'Moderate Interest/Ability', 'High Interest/Ability'];
 
 async function loadSkills() {
   try {
@@ -1315,10 +1315,10 @@ function renderSkills() {
   }
 
   let html = '<div class="skill-legend">';
-  html += '<span><span class="legend-swatch" style="background:var(--text-dim);"></span> 0 = None</span>';
-  html += '<span><span class="legend-swatch" style="background:#ffab00;"></span> 1 = Interested</span>';
-  html += '<span><span class="legend-swatch" style="background:#448aff;"></span> 2 = Practicing</span>';
-  html += '<span><span class="legend-swatch" style="background:#00c853;"></span> 3 = Ready</span>';
+  html += '<span><span class="legend-swatch" style="background:var(--text-dim);"></span> 0 = No Interest</span>';
+  html += '<span><span class="legend-swatch" style="background:#ffab00;"></span> 1 = Low</span>';
+  html += '<span><span class="legend-swatch" style="background:#448aff;"></span> 2 = Moderate</span>';
+  html += '<span><span class="legend-swatch" style="background:#00c853;"></span> 3 = High</span>';
   html += '</div>';
 
   html += skillsData.skills.map(skill => {
