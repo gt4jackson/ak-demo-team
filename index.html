@@ -927,7 +927,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbz8oJ2K_op9zPChhvFF4ftnFsfaicXUHZDPB_Z3xpzZyeD8OfAx5tgip70NouhePcNO/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 const ADMIN_USERS = ['Mr Tanner'];
@@ -1685,10 +1685,17 @@ function renderAdminAttendance() {
     return;
   }
 
-  let html = '<div class="admin-grid"><table class="admin-table"><thead><tr><th>Member</th>';
-  sessions.forEach(s => {
+  // Find index of next upcoming session for auto-scroll
+  let nextSessionIdx = sessions.length - 1; // default to last
+  for (let i = 0; i < sessions.length; i++) {
+    if (parseDate(sessions[i].date) >= now) { nextSessionIdx = i; break; }
+  }
+
+  let html = '<div class="admin-grid" id="adminAttendanceGrid"><table class="admin-table"><thead><tr><th>Member</th>';
+  sessions.forEach((s, i) => {
     const shortDate = s.date.replace(/, \d{4}$/, '');
-    html += '<th>' + shortDate + '<br><span style="font-weight:400;text-transform:none;">' + s.day + '</span></th>';
+    const isNext = (i === nextSessionIdx);
+    html += '<th' + (isNext ? ' id="nextPracticeCol"' : '') + '>' + shortDate + '<br><span style="font-weight:400;text-transform:none;">' + s.day + '</span></th>';
   });
   html += '</tr></thead><tbody>';
 
@@ -1717,6 +1724,16 @@ function renderAdminAttendance() {
   html += '<span><span class="legend-swatch" style="background:var(--text-dim);"></span> No Response</span>';
   html += '</div>';
   container.innerHTML = html;
+
+  // Auto-scroll to next practice column
+  requestAnimationFrame(() => {
+    const col = document.getElementById('nextPracticeCol');
+    const grid = document.getElementById('adminAttendanceGrid');
+    if (col && grid) {
+      const stickyWidth = grid.querySelector('th:first-child').offsetWidth;
+      grid.scrollLeft = col.offsetLeft - stickyWidth - 8;
+    }
+  });
 }
 
 async function adminSetAttendance(memberName, dateStr, status, selectEl) {
