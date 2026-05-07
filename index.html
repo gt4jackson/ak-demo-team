@@ -925,7 +925,7 @@ body {
 
 <script>
 // ---- State ----
-let API_URL = 'https://script.google.com/macros/s/AKfycbz8oJ2K_op9zPChhvFF4ftnFsfaicXUHZDPB_Z3xpzZyeD8OfAx5tgip70NouhePcNO/exec';
+let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
 const APP_VERSION = '3.8';
 let scheduleData = null;
@@ -1113,6 +1113,7 @@ function renderSessions() {
           <div style="text-align:right">
             <div class="session-time">${s.time}</div>
             <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">${s.duration}</div>
+            ${s.location ? `<div style="font-size:11px; color:var(--text-dim); margin-top:3px;">📍 ${s.location}</div>` : ''}
           </div>
         </div>
         ${!isPast && !userIsCoach ? `
@@ -1174,7 +1175,7 @@ function renderMySessions() {
           <div class="session-header">
             <div>
               <div class="session-date">${s.date}</div>
-              <div class="session-day">${s.day} &middot; ${s.time}</div>
+              <div class="session-day">${s.day} &middot; ${s.time}${s.location ? ` · 📍 ${s.location}` : ''}</div>
             </div>
             <span class="att-status ${st}">${st === 'yes' ? 'In' : 'Maybe'}</span>
           </div>
