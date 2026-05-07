@@ -927,10 +927,10 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbz8oJ2K_op9zPChhvFF4ftnFsfaicXUHZDPB_Z3xpzZyeD8OfAx5tgip70NouhePcNO/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
-const ADMIN_USERS = ['Mr Tanner'];
+const ADMIN_USERS = ['Mr Tanner', 'Mr Mags'];
 function isCoach(name) {
   if (!scheduleData || !scheduleData.memberRoles) return false;
   return COACH_ROLES.includes((scheduleData.memberRoles[name] || '').toLowerCase());
