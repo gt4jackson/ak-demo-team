@@ -170,6 +170,10 @@ body {
 }
 .session-card.upcoming { border-left: 3px solid var(--accent); }
 .session-card.past { opacity: 0.5; }
+.session-card.performance { background: #1e1a2e; border-color: rgba(224, 64, 251, 0.3); }
+.session-card.performance.upcoming { border-left: 3px solid #e040fb; }
+.session-card.tournament { background: #1a2e1e; border-color: rgba(0, 200, 83, 0.3); }
+.session-card.tournament.upcoming { border-left: 3px solid var(--yes); }
 
 .session-header {
   padding: 14px 16px;
@@ -1027,6 +1031,11 @@ function confirmName() {
 
 function changeName() {
   if (confirm('Switch to a different name? This will change who you appear as in the chat and attendance.')) {
+    // Reset admin state before switching
+    currentUser = null;
+    document.getElementById('adminTab').style.display = 'none';
+    if (currentTab === 'admin') switchTab('schedule');
+    adminLoaded = false;
     showWelcomeScreen();
   }
 }
@@ -1103,7 +1112,7 @@ function renderSessions() {
     const id = 'session-' + idx;
 
     return `
-      <div class="session-card ${isUpcoming ? 'upcoming' : ''} ${isPast ? 'past' : ''}">
+      <div class="session-card ${typeClass} ${isUpcoming ? 'upcoming' : ''} ${isPast ? 'past' : ''}">
         <div class="session-header" onclick="toggleDetail('${id}')">
           <div>
             <div class="session-date">${s.date}</div>
