@@ -430,7 +430,7 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   margin: 0 -16px;
-  padding: 0 16px;
+  padding: 0 0 0 0;
 }
 .admin-table {
   width: max-content;
@@ -458,6 +458,8 @@ body {
   left: 0;
   z-index: 3;
   min-width: 100px;
+  border-right: 2px solid var(--border);
+  box-shadow: 4px 0 8px rgba(0,0,0,0.5);
 }
 .admin-table td {
   padding: 6px 8px;
@@ -472,6 +474,8 @@ body {
   font-size: 13px;
   z-index: 1;
   white-space: nowrap;
+  border-right: 2px solid var(--border);
+  box-shadow: 4px 0 8px rgba(0,0,0,0.5);
 }
 .admin-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
 .admin-table tr:nth-child(even) td:first-child { background: var(--bg); }
