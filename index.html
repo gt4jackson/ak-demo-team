@@ -19,6 +19,9 @@ gtag('config', 'G-JRY55TDG8R', { send_page_views: true });
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
+<!-- Firebase Cloud Messaging -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 <style>
 :root {
   --bg: #0f0f1a;
@@ -96,6 +99,33 @@ body {
   border: none;
   background: none;
   padding: 0;
+}
+
+/* Notification Bell */
+.notif-bell {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: border-color 0.2s;
+}
+.notif-bell.enabled { border-color: var(--accent); }
+.notif-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 8px;
+  height: 8px;
+  background: var(--yes);
+  border-radius: 50%;
 }
 
 /* Tabs */
@@ -852,6 +882,10 @@ body {
       <div class="header-user-name" id="lockedName"></div>
       <button class="header-user-change" onclick="changeName()">Change</button>
     </div>
+    <button class="notif-bell" id="notifBell" onclick="toggleNotifications()" title="Enable Notifications" style="display:none;">
+      <span class="bell-icon">🔔</span>
+      <span class="notif-dot" id="notifDot" style="display:none;"></span>
+    </button>
   </div>
 
   <div class="tabs">
@@ -941,7 +975,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 const ADMIN_USERS = ['Mr Tanner', 'Mr Mags'];
@@ -1046,6 +1080,12 @@ function changeName() {
     document.getElementById('adminTab').style.display = 'none';
     if (currentTab === 'admin') switchTab('schedule');
     adminLoaded = false;
+    // Reset notification state for new user
+    setStored('fcm_subscribed', '');
+    const bell = document.getElementById('notifBell');
+    if (bell) { bell.classList.remove('enabled'); }
+    const dot = document.getElementById('notifDot');
+    if (dot) { dot.style.display = 'none'; }
     showWelcomeScreen();
   }
 }
@@ -1901,6 +1941,66 @@ document.addEventListener('touchend', async () => {
   ptr.classList.remove('refreshing');
   ptr.style.height = '0';
 });
+
+// ---- Push Notifications (Firebase Cloud Messaging) ----
+const VAPID_KEY = 'BMZesNttvJzb1cqTlPrO3PW3Jx6Znjbqk15rUGQLANRFKC5A2AKgHuY3WorAKW1lTe7r9EgjsZQyG3umUkTM60k';
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCNYwrEPdlqZtBFIg68_pXoSfLCmmpMFI0",
+  authDomain: "ak-newtown-demo.firebaseapp.com",
+  projectId: "ak-newtown-demo",
+  storageBucket: "ak-newtown-demo.firebasestorage.app",
+  messagingSenderId: "437125936839",
+  appId: "1:437125936839:web:7fe20565cf9c88a303b0e2"
+};
+
+let fcmMessaging = null;
+
+function initFirebase() {
+  if (typeof firebase === 'undefined' || !('Notification' in window)) return;
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fcmMessaging = firebase.messaging();
+    document.getElementById('notifBell').style.display = 'flex';
+    if (getStored('fcm_subscribed') === 'true') {
+      document.getElementById('notifBell').classList.add('enabled');
+      document.getElementById('notifDot').style.display = 'block';
+    }
+    fcmMessaging.onMessage((payload) => {
+      const notif = payload.notification || payload.data || {};
+      showToast(notif.body || notif.title || 'New notification');
+    });
+  } catch(e) { console.log('Firebase init:', e); }
+}
+
+async function toggleNotifications() {
+  if (!fcmMessaging) { showToast('Notifications not supported'); return; }
+  if (!currentUser) { showToast('Please sign in first'); return; }
+  if (getStored('fcm_subscribed') === 'true') {
+    showToast('Notifications are enabled ✓');
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { showToast('Permission denied'); return; }
+    const token = await fcmMessaging.getToken({ vapidKey: VAPID_KEY });
+    if (!token) { showToast('Could not get token'); return; }
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ token: API_TOKEN, action: 'saveNotifToken', name: currentUser, fcmToken: token })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setStored('fcm_subscribed', 'true');
+      setStored('fcm_token', token);
+      document.getElementById('notifBell').classList.add('enabled');
+      document.getElementById('notifDot').style.display = 'block';
+      showToast('Notifications enabled! 🔔');
+    } else { showToast('Error saving preference'); }
+  } catch(e) { console.error('Notif error:', e); showToast('Error enabling notifications'); }
+}
+
+// Init Firebase after page loads
+setTimeout(initFirebase, 1000);
 
 // ---- Service Worker ----
 if ('serviceWorker' in navigator) {
