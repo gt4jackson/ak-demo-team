@@ -174,6 +174,12 @@ body {
 .session-card.performance.upcoming { border-left: 3px solid #e040fb; }
 .session-card.tournament { background: #1a2e1e; border-color: rgba(0, 200, 83, 0.3); }
 .session-card.tournament.upcoming { border-left: 3px solid var(--yes); }
+.session-card.cancelled { border-left: 3px solid #888 !important; opacity: 0.7; }
+.cancelled-badge {
+  display: inline-block; background: rgba(136,136,136,0.15); color: #888;
+  font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 8px;
+  border: 1px solid rgba(136,136,136,0.3); letter-spacing: 0.5px;
+}
 
 .session-header {
   padding: 14px 16px;
@@ -1113,7 +1119,24 @@ function renderSessions() {
     const userIsCoach = isCoach(currentUser);
     const typeLower = s.type.toLowerCase();
     const typeClass = typeLower.includes('monthly') ? 'monthly' : typeLower.includes('tournament') ? 'tournament' : typeLower.includes('performance') ? 'performance' : 'weekly';
+    const isCancelled = s.duration && s.duration.toLowerCase() === 'cancelled';
     const id = 'session-' + idx;
+
+    if (isCancelled) {
+      return `
+      <div class="session-card ${typeClass} cancelled ${isPast ? 'past' : ''}">
+        <div class="session-header">
+          <div>
+            <div class="session-date">${s.date}</div>
+            <div class="session-day">${s.day}</div>
+            <span class="session-type ${typeClass}">${s.type || s.day}</span>
+          </div>
+          <div style="text-align:right">
+            <div class="cancelled-badge">CANCELLED</div>
+          </div>
+        </div>
+      </div>`;
+    }
 
     return `
       <div class="session-card ${typeClass} ${isUpcoming ? 'upcoming' : ''} ${isPast ? 'past' : ''}">
