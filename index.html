@@ -1976,7 +1976,20 @@ async function toggleNotifications() {
   if (!fcmMessaging) { showToast('Notifications not supported'); return; }
   if (!currentUser) { showToast('Please sign in first'); return; }
   if (getStored('fcm_subscribed') === 'true') {
-    showToast('Notifications are enabled ✓');
+    if (confirm('Notifications are on. Turn them off?')) {
+      try {
+        await fcmMessaging.deleteToken();
+        await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ token: API_TOKEN, action: 'removeNotifToken', name: currentUser })
+        });
+      } catch(e) {}
+      setStored('fcm_subscribed', '');
+      setStored('fcm_token', '');
+      document.getElementById('notifBell').classList.remove('enabled');
+      document.getElementById('notifDot').style.display = 'none';
+      showToast('Notifications turned off');
+    }
     return;
   }
   try {
