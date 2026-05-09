@@ -21,6 +21,8 @@ messaging.onBackgroundMessage((payload) => {
     badge: './icon-192.png',
     data: payload.data || {}
   });
+  // Set app icon badge
+  if ('setAppBadge' in navigator) navigator.setAppBadge().catch(() => {});
 });
 
 self.addEventListener('notificationclick', (e) => {

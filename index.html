@@ -796,13 +796,20 @@ body {
 /* Unread badge on chat tab */
 .tab .badge {
   display: none;
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #e94560;
+  color: #fff;
+  border-radius: 9px;
   position: absolute;
-  top: 8px;
-  right: calc(50% - 36px);
+  top: 4px;
+  right: calc(50% - 42px);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-sizing: border-box;
 }
 .tab .badge.show { display: block; }
 
@@ -975,7 +982,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.10';
+const APP_VERSION = '3.11';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 const ADMIN_USERS = ['Mr Tanner', 'Mr Mags'];
@@ -1401,17 +1408,26 @@ async function loadMessages() {
 
 function updateChatBadge() {
   const badge = document.getElementById('chatBadge');
-  if (chatMessages.length > lastSeenMessageCount) {
+  const unread = chatMessages.length - lastSeenMessageCount;
+  if (unread > 0) {
+    badge.textContent = unread > 99 ? '99+' : String(unread);
     badge.classList.add('show');
+    // App icon badge
+    if ('setAppBadge' in navigator) navigator.setAppBadge(unread).catch(() => {});
   } else {
+    badge.textContent = '';
     badge.classList.remove('show');
+    if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
   }
 }
 
 function markChatRead() {
   lastSeenMessageCount = chatMessages.length;
   setStored('ak_chat_seen', String(lastSeenMessageCount));
-  document.getElementById('chatBadge').classList.remove('show');
+  const badge = document.getElementById('chatBadge');
+  badge.textContent = '';
+  badge.classList.remove('show');
+  if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
 }
 
 function renderMessages() {
@@ -1968,6 +1984,8 @@ function initFirebase() {
     fcmMessaging.onMessage((payload) => {
       const notif = payload.notification || payload.data || {};
       showToast(notif.body || notif.title || 'New notification');
+      // If it's a chat message and we're not on chat tab, refresh messages to update badge
+      if (currentTab !== 'chat') loadMessages();
     });
   } catch(e) { console.log('Firebase init:', e); }
 }
@@ -2015,6 +2033,15 @@ async function toggleNotifications() {
 
 // Init Firebase after page loads
 setTimeout(initFirebase, 1000);
+
+// Clear app icon badge when app comes to foreground
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    if ('clearAppBadge' in navigator && currentTab === 'chat') navigator.clearAppBadge().catch(() => {});
+    // Refresh messages to catch any sent while away
+    if (chatLoaded) loadMessages();
+  }
+});
 
 // ---- Service Worker ----
 if ('serviceWorker' in navigator) {
