@@ -1167,7 +1167,7 @@ function confirmName() {
 function showPinModal(mode) {
   pinMode = mode;
   pinBuffer = '';
-  pinFirstEntry = '';
+  if (mode !== 'confirm') pinFirstEntry = '';
   updatePinDots();
   document.getElementById('pinError').textContent = '';
   const title = document.getElementById('pinTitle');
