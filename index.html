@@ -1069,13 +1069,12 @@ const API_TOKEN = 'ak-demo-2026-newtown';
 const APP_VERSION = '3.12';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
-const ADMIN_USERS = ['Mr Tanner', 'Mr Mags'];
 function isCoach(name) {
   if (!scheduleData || !scheduleData.memberRoles) return false;
   return COACH_ROLES.includes((scheduleData.memberRoles[name] || '').toLowerCase());
 }
 function isAdmin(name) {
-  return ADMIN_USERS.includes(name);
+  return isCoach(name);
 }
 function getTeamMembers() {
   return scheduleData.members.filter(m => !isCoach(m));
