@@ -813,6 +813,48 @@ body {
 }
 .tab .badge.show { display: block; }
 
+/* PIN Modal */
+.pin-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7); z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-modal {
+  background: var(--card); border-radius: 16px; padding: 32px 24px;
+  width: 300px; max-width: 90vw; text-align: center;
+}
+.pin-dots {
+  display: flex; gap: 12px; justify-content: center; margin: 16px 0 8px;
+}
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent; transition: background 0.15s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  max-width: 240px; margin: 16px auto 0;
+}
+.pin-key {
+  width: 64px; height: 54px; border-radius: 12px; font-size: 22px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto; transition: background 0.15s;
+}
+.pin-key:active { background: var(--accent); color: #fff; }
+.pin-key-empty { visibility: hidden; }
+.pin-cancel {
+  margin-top: 16px; background: none; border: none; color: var(--text-dim);
+  font-size: 14px; cursor: pointer; padding: 8px 16px;
+}
+.family-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.family-btn {
+  padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.family-btn:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
 /* Update banner */
 .update-banner {
   position: fixed;
@@ -872,6 +914,42 @@ body {
   </div>
 </div>
 
+<!-- PIN Modal -->
+<div id="pinModal" class="pin-overlay" style="display:none;">
+  <div class="pin-modal">
+    <h2 id="pinTitle">Enter your PIN</h2>
+    <p id="pinSubtitle" style="color:var(--text-dim); margin:8px 0 16px; font-size:14px;">Enter your 4-digit PIN to sign in.</p>
+    <div class="pin-dots" id="pinDots">
+      <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+    </div>
+    <p id="pinError" style="color:#e94560; font-size:13px; min-height:20px; margin:8px 0;"></p>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinInput('1')">1</button>
+      <button class="pin-key" onclick="pinInput('2')">2</button>
+      <button class="pin-key" onclick="pinInput('3')">3</button>
+      <button class="pin-key" onclick="pinInput('4')">4</button>
+      <button class="pin-key" onclick="pinInput('5')">5</button>
+      <button class="pin-key" onclick="pinInput('6')">6</button>
+      <button class="pin-key" onclick="pinInput('7')">7</button>
+      <button class="pin-key" onclick="pinInput('8')">8</button>
+      <button class="pin-key" onclick="pinInput('9')">9</button>
+      <button class="pin-key pin-key-empty"></button>
+      <button class="pin-key" onclick="pinInput('0')">0</button>
+      <button class="pin-key" onclick="pinDelete()">&#9003;</button>
+    </div>
+    <button class="pin-cancel" onclick="pinCancel()">Cancel</button>
+  </div>
+</div>
+
+<!-- Family Switcher Modal -->
+<div id="familyModal" class="pin-overlay" style="display:none;">
+  <div class="pin-modal">
+    <h2>Who's using the app?</h2>
+    <p style="color:var(--text-dim); margin:8px 0 16px; font-size:14px;">Your PIN is linked to multiple members.</p>
+    <div id="familyList" class="family-list"></div>
+  </div>
+</div>
+
 <!-- Main app -->
 <div id="app" style="display:none;">
   <div class="ptr-indicator" id="ptrIndicator">
@@ -887,6 +965,7 @@ body {
     </div>
     <div class="header-user" id="userBar">
       <div class="header-user-name" id="lockedName"></div>
+      <button class="header-user-change" id="switchMemberBtn" onclick="showFamilySwitcher()" style="display:none;">Switch</button>
       <button class="header-user-change" onclick="changeName()">Change</button>
     </div>
     <button class="notif-bell" id="notifBell" onclick="toggleNotifications()" title="Enable Notifications" style="display:none;">
@@ -961,6 +1040,7 @@ body {
       <button class="admin-sub-tab active" data-subtab="weapons" onclick="switchAdminSub('weapons')">Weapons</button>
       <button class="admin-sub-tab" data-subtab="tricks" onclick="switchAdminSub('tricks')">Tricks</button>
       <button class="admin-sub-tab" data-subtab="attendance" onclick="switchAdminSub('attendance')">Schedule</button>
+      <button class="admin-sub-tab" data-subtab="pins" onclick="switchAdminSub('pins')">PINs</button>
     </div>
     <div id="adminWeaponsView" class="admin-view">
       <p style="text-align:center; color:var(--text-dim); padding:40px;">Loading weapons...</p>
@@ -970,6 +1050,10 @@ body {
     </div>
     <div id="adminAttendanceView" class="admin-view" style="display:none;">
       <p style="text-align:center; color:var(--text-dim); padding:40px;">Loading schedule...</p>
+    </div>
+    <div id="adminPinsView" class="admin-view" style="display:none;">
+      <p style="text-align:center; color:var(--text-dim); padding:16px 0 8px; font-size:14px;">Reset a member's PIN if they forgot it. They'll be prompted to create a new one on next login.</p>
+      <div id="adminPinsList"></div>
     </div>
   </div>
 
@@ -982,7 +1066,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.11';
+const APP_VERSION = '3.12';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 const ADMIN_USERS = ['Mr Tanner', 'Mr Mags'];
@@ -1024,19 +1108,16 @@ async function loadData() {
     if (scheduleData.error) throw new Error(scheduleData.error);
 
     const savedName = getStored('ak_user_locked');
-    if (savedName && scheduleData.members.includes(savedName)) {
-      // Returning user — go straight to app
+    const pinAuth = getStored('ak_pin_auth');
+    if (savedName && scheduleData.members.includes(savedName) && pinAuth === 'true') {
+      // Returning authenticated user — go straight to app
       currentUser = savedName;
+      currentFamily = JSON.parse(getStored('ak_family_members') || '[]');
       gtag('set', 'user_properties', { team_member: currentUser });
       gtag('event', 'returning_visit', { team_member: currentUser });
-      document.getElementById('lockedName').textContent = currentUser;
-      if (isAdmin(currentUser)) document.getElementById('adminTab').style.display = '';
-      document.getElementById('app').style.display = 'block';
-      render();
-      // Check for new chat messages in the background
-      preloadChat();
+      enterApp(currentUser);
     } else {
-      // First-time visitor — show welcome screen
+      // First-time visitor or needs PIN — show welcome screen
       showWelcomeScreen();
     }
     document.getElementById('refreshNote').textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -1047,12 +1128,17 @@ async function loadData() {
   document.getElementById('loadingView').style.display = 'none';
 }
 
-// ---- Welcome / Name Selection ----
+// ---- Welcome / Name Selection / PIN Auth ----
+let currentFamily = [];
+let pinBuffer = '';
+let pinMode = ''; // 'login', 'create', 'confirm'
+let pinFirstEntry = '';
+let pendingName = '';
+
 function showWelcomeScreen() {
   document.getElementById('welcomeScreen').style.display = 'block';
   document.getElementById('app').style.display = 'none';
   const sel = document.getElementById('welcomeSelect');
-  // Clear existing options (keep the placeholder)
   sel.innerHTML = '<option value="" disabled selected>Choose your name...</option>';
   scheduleData.members.forEach(name => {
     const opt = document.createElement('option');
@@ -1068,31 +1154,197 @@ function showWelcomeScreen() {
 function confirmName() {
   const sel = document.getElementById('welcomeSelect');
   if (!sel.value) return;
-  currentUser = sel.value;
+  pendingName = sel.value;
+  // Check if member has a PIN set
+  const hasPin = scheduleData.memberPins && scheduleData.memberPins[pendingName];
+  if (hasPin) {
+    showPinModal('login');
+  } else {
+    showPinModal('create');
+  }
+}
+
+function showPinModal(mode) {
+  pinMode = mode;
+  pinBuffer = '';
+  pinFirstEntry = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+  const title = document.getElementById('pinTitle');
+  const subtitle = document.getElementById('pinSubtitle');
+  if (mode === 'login') {
+    title.textContent = 'Enter your PIN';
+    subtitle.textContent = 'Enter your 4-digit PIN to sign in as ' + pendingName + '.';
+  } else if (mode === 'create') {
+    title.textContent = 'Create a PIN';
+    subtitle.textContent = 'Choose a 4-digit PIN to secure your account.';
+  } else if (mode === 'confirm') {
+    title.textContent = 'Confirm your PIN';
+    subtitle.textContent = 'Enter the same 4-digit PIN again.';
+  }
+  document.getElementById('pinModal').style.display = 'flex';
+}
+
+function pinInput(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) {
+    setTimeout(() => processPinEntry(), 200);
+  }
+}
+
+function pinDelete() {
+  if (pinBuffer.length > 0) {
+    pinBuffer = pinBuffer.slice(0, -1);
+    updatePinDots();
+  }
+}
+
+function updatePinDots() {
+  const dots = document.querySelectorAll('#pinDots .pin-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('filled', i < pinBuffer.length);
+  });
+}
+
+async function processPinEntry() {
+  const errorEl = document.getElementById('pinError');
+  if (pinMode === 'login') {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ token: API_TOKEN, action: 'validatePin', name: pendingName, pin: pinBuffer })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('pinModal').style.display = 'none';
+        currentFamily = data.familyMembers || [];
+        setStored('ak_family_members', JSON.stringify(currentFamily));
+        if (currentFamily.length > 1) {
+          showFamilyPicker(currentFamily);
+        } else {
+          completeLogin(pendingName);
+        }
+      } else if (data.needsPin) {
+        showPinModal('create');
+      } else {
+        errorEl.textContent = 'Incorrect PIN. Try again.';
+        pinBuffer = '';
+        updatePinDots();
+      }
+    } catch(e) {
+      errorEl.textContent = 'Connection error. Try again.';
+      pinBuffer = '';
+      updatePinDots();
+    }
+  } else if (pinMode === 'create') {
+    pinFirstEntry = pinBuffer;
+    pinBuffer = '';
+    updatePinDots();
+    showPinModal('confirm');
+  } else if (pinMode === 'confirm') {
+    if (pinBuffer !== pinFirstEntry) {
+      errorEl.textContent = 'PINs don\'t match. Start over.';
+      pinBuffer = '';
+      pinFirstEntry = '';
+      updatePinDots();
+      setTimeout(() => showPinModal('create'), 1500);
+      return;
+    }
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ token: API_TOKEN, action: 'setPin', name: pendingName, pin: pinBuffer })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('pinModal').style.display = 'none';
+        currentFamily = data.familyMembers || [];
+        setStored('ak_family_members', JSON.stringify(currentFamily));
+        if (currentFamily.length > 1) {
+          showFamilyPicker(currentFamily);
+        } else {
+          completeLogin(pendingName);
+        }
+      } else {
+        errorEl.textContent = data.error || 'Error setting PIN.';
+        pinBuffer = '';
+        updatePinDots();
+      }
+    } catch(e) {
+      errorEl.textContent = 'Connection error. Try again.';
+      pinBuffer = '';
+      updatePinDots();
+    }
+  }
+}
+
+function pinCancel() {
+  document.getElementById('pinModal').style.display = 'none';
+  pinBuffer = '';
+  pinFirstEntry = '';
+}
+
+function showFamilyPicker(members) {
+  const list = document.getElementById('familyList');
+  list.innerHTML = members.map(name =>
+    `<button class="family-btn" onclick="selectFamilyMember('${name.replace(/'/g, "\\'")}')">${name}</button>`
+  ).join('');
+  document.getElementById('familyModal').style.display = 'flex';
+}
+
+function selectFamilyMember(name) {
+  document.getElementById('familyModal').style.display = 'none';
+  completeLogin(name);
+}
+
+function completeLogin(name) {
+  currentUser = name;
   setStored('ak_user_locked', currentUser);
-  document.getElementById('lockedName').textContent = currentUser;
-  if (isAdmin(currentUser)) document.getElementById('adminTab').style.display = '';
+  setStored('ak_pin_auth', 'true');
   document.getElementById('welcomeScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  enterApp(currentUser);
   gtag('set', 'user_properties', { team_member: currentUser });
-  gtag('event', 'login', { method: 'name_select', team_member: currentUser });
-  render();
+  gtag('event', 'login', { method: 'pin_auth', team_member: currentUser });
   showToast('Welcome, ' + currentUser + '!');
 }
 
+function enterApp(name) {
+  document.getElementById('lockedName').textContent = name;
+  if (isAdmin(name)) document.getElementById('adminTab').style.display = '';
+  // Show family switch button if multiple family members
+  const switchBtn = document.getElementById('switchMemberBtn');
+  if (switchBtn) {
+    switchBtn.style.display = currentFamily.length > 1 ? '' : 'none';
+  }
+  document.getElementById('app').style.display = 'block';
+  render();
+  preloadChat();
+}
+
+function showFamilySwitcher() {
+  if (currentFamily.length > 1) {
+    showFamilyPicker(currentFamily);
+  }
+}
+
 function changeName() {
-  if (confirm('Switch to a different name? This will change who you appear as in the chat and attendance.')) {
-    // Reset admin state before switching
+  if (confirm('Sign out? You\'ll need to enter your PIN again.')) {
     currentUser = null;
+    currentFamily = [];
     document.getElementById('adminTab').style.display = 'none';
     if (currentTab === 'admin') switchTab('schedule');
     adminLoaded = false;
-    // Reset notification state for new user
     setStored('fcm_subscribed', '');
+    setStored('ak_pin_auth', '');
+    setStored('ak_family_members', '[]');
     const bell = document.getElementById('notifBell');
     if (bell) { bell.classList.remove('enabled'); }
     const dot = document.getElementById('notifDot');
     if (dot) { dot.style.display = 'none'; }
+    const switchBtn = document.getElementById('switchMemberBtn');
+    if (switchBtn) switchBtn.style.display = 'none';
     showWelcomeScreen();
   }
 }
@@ -1651,6 +1903,7 @@ function switchAdminSub(sub) {
   if (sub === 'weapons') document.getElementById('adminWeaponsView').style.display = '';
   else if (sub === 'tricks') document.getElementById('adminTricksView').style.display = '';
   else if (sub === 'attendance') document.getElementById('adminAttendanceView').style.display = '';
+  else if (sub === 'pins') { document.getElementById('adminPinsView').style.display = ''; renderAdminPins(); }
   gtag('event', 'admin_sub_view', { sub_tab: sub, team_member: currentUser });
 }
 
@@ -1851,6 +2104,44 @@ async function adminSetAttendance(memberName, dateStr, status, selectEl) {
     showToast(memberName + ' — ' + dateStr + ' → ' + (status || 'cleared'));
   } catch(err) {
     showToast('Failed to save — try again');
+  }
+}
+
+function renderAdminPins() {
+  const container = document.getElementById('adminPinsList');
+  if (!scheduleData) { container.innerHTML = ''; return; }
+  const members = scheduleData.members || [];
+  const pins = scheduleData.memberPins || {};
+  container.innerHTML = members.map(name => {
+    const hasPin = pins[name];
+    const safeName = name.replace(/'/g, "\\'");
+    return `<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--border);">
+      <div>
+        <span style="font-weight:600;">${escapeHtml(name)}</span>
+        <span style="color:var(--text-dim); font-size:13px; margin-left:8px;">${hasPin ? '🔒 PIN set' : '🔓 No PIN'}</span>
+      </div>
+      ${hasPin ? `<button style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 12px; font-size:13px; color:var(--text); cursor:pointer;" onclick="adminResetPin('${safeName}')">Reset</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function adminResetPin(memberName) {
+  if (!confirm('Reset PIN for ' + memberName + '? They will need to create a new PIN on next login.')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ token: API_TOKEN, action: 'resetPin', memberName: memberName })
+    });
+    const data = await res.json();
+    if (data.success) {
+      scheduleData.memberPins[memberName] = false;
+      renderAdminPins();
+      showToast('PIN reset for ' + memberName);
+    } else {
+      showToast(data.error || 'Error resetting PIN');
+    }
+  } catch(e) {
+    showToast('Connection error');
   }
 }
 
