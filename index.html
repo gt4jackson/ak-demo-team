@@ -751,6 +751,23 @@ body {
   border-bottom-right-radius: 4px;
 }
 .msg.mine .msg-name { color: var(--accent); }
+.msg-reactions {
+  display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap;
+}
+.react-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid transparent;
+  border-radius: 12px; padding: 2px 7px; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 3px; transition: all 0.15s;
+  line-height: 1.4;
+}
+.react-btn .react-count {
+  font-size: 11px; color: var(--text-dim); font-weight: 600; min-width: 8px; text-align: center;
+}
+.react-btn:active { transform: scale(0.9); }
+.react-btn.reacted {
+  background: rgba(233, 69, 96, 0.15); border-color: rgba(233, 69, 96, 0.4);
+}
+.react-btn.reacted .react-count { color: var(--accent); }
 .compose {
   display: flex;
   gap: 8px;
@@ -1066,7 +1083,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.12';
+const APP_VERSION = '3.13';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1681,6 +1698,21 @@ function markChatRead() {
   if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
 }
 
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '👏', '🔥'];
+
+function renderReactions(m) {
+  const r = m.reactions || {};
+  return REACTION_EMOJIS.map(emoji => {
+    const users = r[emoji] || [];
+    const count = users.length;
+    const reacted = users.includes(currentUser);
+    const title = users.length ? users.join(', ') : '';
+    return `<button class="react-btn${reacted ? ' reacted' : ''}" title="${title}" onclick="toggleReaction(${m.row}, '${emoji}')">
+      <span>${emoji}</span>${count ? `<span class="react-count">${count}</span>` : ''}
+    </button>`;
+  }).join('');
+}
+
 function renderMessages() {
   const container = document.getElementById('messageList');
   if (chatMessages.length === 0) {
@@ -1694,11 +1726,32 @@ function renderMessages() {
       <div class="msg ${isMine ? 'mine' : 'other'}">
         <div class="msg-name" style="color:${color}">${m.name}</div>
         <div class="msg-text">${linkify(m.message)}</div>
+        <div class="msg-reactions">${renderReactions(m)}</div>
         <div class="msg-time">${m.timestamp}</div>
       </div>
     `;
   }).join('');
   scrollChatToBottom();
+}
+
+async function toggleReaction(messageRow, emoji) {
+  if (!currentUser) return;
+  // Optimistic update
+  const msg = chatMessages.find(m => m.row === messageRow);
+  if (msg) {
+    if (!msg.reactions) msg.reactions = {};
+    if (!msg.reactions[emoji]) msg.reactions[emoji] = [];
+    const idx = msg.reactions[emoji].indexOf(currentUser);
+    if (idx > -1) { msg.reactions[emoji].splice(idx, 1); if (!msg.reactions[emoji].length) delete msg.reactions[emoji]; }
+    else { msg.reactions[emoji].push(currentUser); }
+    renderMessages();
+  }
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ token: API_TOKEN, action: 'reactMessage', messageRow: messageRow, emoji: emoji, name: currentUser })
+    });
+  } catch(e) { /* server will be source of truth on next refresh */ }
 }
 
 function escapeHtml(text) {
