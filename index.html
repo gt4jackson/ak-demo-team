@@ -751,23 +751,48 @@ body {
   border-bottom-right-radius: 4px;
 }
 .msg.mine .msg-name { color: var(--accent); }
+.msg-row { position: relative; }
 .msg-reactions {
-  display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap;
+  display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;
 }
-.react-btn {
+.react-pill {
   background: rgba(255,255,255,0.06); border: 1px solid transparent;
-  border-radius: 12px; padding: 2px 7px; font-size: 14px; cursor: pointer;
-  display: flex; align-items: center; gap: 3px; transition: all 0.15s;
+  border-radius: 12px; padding: 2px 7px; font-size: 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 3px; transition: all 0.15s;
   line-height: 1.4;
 }
-.react-btn .react-count {
-  font-size: 11px; color: var(--text-dim); font-weight: 600; min-width: 8px; text-align: center;
+.react-pill .react-count {
+  font-size: 11px; color: var(--text-dim); font-weight: 600;
 }
-.react-btn:active { transform: scale(0.9); }
-.react-btn.reacted {
+.react-pill:active { transform: scale(0.9); }
+.react-pill.reacted {
   background: rgba(233, 69, 96, 0.15); border-color: rgba(233, 69, 96, 0.4);
 }
-.react-btn.reacted .react-count { color: var(--accent); }
+.react-pill.reacted .react-count { color: var(--accent); }
+.react-add-btn {
+  background: none; border: 1px solid var(--border); border-radius: 12px;
+  padding: 2px 8px; font-size: 14px; cursor: pointer; color: var(--text-dim);
+  transition: all 0.15s; line-height: 1.4;
+}
+.react-add-btn:active { transform: scale(0.9); }
+.react-picker {
+  position: absolute; bottom: 100%; left: 0;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 6px 8px; display: flex; gap: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4); z-index: 50;
+  animation: pickerPop 0.15s ease-out;
+}
+.react-picker button {
+  background: none; border: none; font-size: 22px; padding: 4px 6px;
+  cursor: pointer; border-radius: 8px; transition: background 0.1s;
+  line-height: 1;
+}
+.react-picker button:hover { background: rgba(255,255,255,0.1); }
+.react-picker button:active { transform: scale(0.85); }
+@keyframes pickerPop {
+  from { opacity: 0; transform: translateY(6px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .compose {
   display: flex;
   gap: 8px;
@@ -1083,7 +1108,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.13';
+const APP_VERSION = '3.14';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1699,19 +1724,48 @@ function markChatRead() {
 }
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '👏', '🔥'];
+let openPickerRow = null;
 
 function renderReactions(m) {
   const r = m.reactions || {};
-  return REACTION_EMOJIS.map(emoji => {
+  // Show pills for emojis that have reactions
+  let pills = REACTION_EMOJIS.map(emoji => {
     const users = r[emoji] || [];
-    const count = users.length;
+    if (!users.length) return '';
     const reacted = users.includes(currentUser);
-    const title = users.length ? users.join(', ') : '';
-    return `<button class="react-btn${reacted ? ' reacted' : ''}" title="${title}" onclick="toggleReaction(${m.row}, '${emoji}')">
-      <span>${emoji}</span>${count ? `<span class="react-count">${count}</span>` : ''}
-    </button>`;
+    const title = users.join(', ');
+    return `<button class="react-pill${reacted ? ' reacted' : ''}" title="${title}" onclick="toggleReaction(${m.row}, '${emoji}')">${emoji}<span class="react-count">${users.length}</span></button>`;
   }).join('');
+  // Add the "+" button to open picker
+  pills += `<button class="react-add-btn" onclick="openReactPicker(event, ${m.row})">+</button>`;
+  // If picker is open for this message, show it
+  let picker = '';
+  if (openPickerRow === m.row) {
+    picker = `<div class="react-picker">${REACTION_EMOJIS.map(e =>
+      `<button onclick="pickReaction(${m.row}, '${e}')">${e}</button>`
+    ).join('')}</div>`;
+  }
+  return picker + pills;
 }
+
+function openReactPicker(event, row) {
+  event.stopPropagation();
+  openPickerRow = openPickerRow === row ? null : row;
+  renderMessages();
+}
+
+function pickReaction(row, emoji) {
+  openPickerRow = null;
+  toggleReaction(row, emoji);
+}
+
+// Close picker when tapping elsewhere
+document.addEventListener('click', (e) => {
+  if (openPickerRow !== null && !e.target.closest('.react-picker') && !e.target.closest('.react-add-btn')) {
+    openPickerRow = null;
+    renderMessages();
+  }
+});
 
 function renderMessages() {
   const container = document.getElementById('messageList');
@@ -1719,11 +1773,12 @@ function renderMessages() {
     container.innerHTML = '<div class="chat-empty">No messages yet. Be the first to say something!</div>';
     return;
   }
+  const wasAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 30;
   container.innerHTML = chatMessages.map(m => {
     const isMine = m.name === currentUser;
     const color = getNameColor(m.name);
     return `
-      <div class="msg ${isMine ? 'mine' : 'other'}">
+      <div class="msg ${isMine ? 'mine' : 'other'} msg-row">
         <div class="msg-name" style="color:${color}">${m.name}</div>
         <div class="msg-text">${linkify(m.message)}</div>
         <div class="msg-reactions">${renderReactions(m)}</div>
@@ -1731,7 +1786,7 @@ function renderMessages() {
       </div>
     `;
   }).join('');
-  scrollChatToBottom();
+  if (wasAtBottom || openPickerRow === null) scrollChatToBottom();
 }
 
 async function toggleReaction(messageRow, emoji) {
@@ -2402,18 +2457,19 @@ async function checkForAppUpdate() {
   } catch(e) {}
 }
 
-function applyUpdate() {
-  // Clear service worker cache and hard reload
-  if ('caches' in window) {
-    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
-  }
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => r.unregister());
-    });
-  }
-  // Force reload from server
-  setTimeout(() => window.location.reload(true), 300);
+async function applyUpdate() {
+  // Clear all caches and unregister service workers before reloading
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if (navigator.serviceWorker) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch(e) { /* proceed with reload regardless */ }
+  window.location.href = window.location.pathname + '?v=' + Date.now();
 }
 
 // Check on load and every 5 minutes
