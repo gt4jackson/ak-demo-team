@@ -554,6 +554,21 @@ body {
   white-space: nowrap;
 }
 
+/* Splash screen */
+.splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 20px;
+  transition: opacity 0.3s ease;
+}
+.splash.fade-out { opacity: 0; pointer-events: none; }
+.splash img { width: 80px; height: 80px; border-radius: 16px; }
+.splash h2 { font-size: 20px; font-weight: 700; color: var(--text); margin: 0; }
+.splash p { font-size: 13px; color: var(--text-dim); margin: 0; }
+.splash .spinner { width: 28px; height: 28px; }
+
 /* Loading & Error */
 .loading {
   text-align: center;
@@ -949,6 +964,14 @@ body {
   <button onclick="applyUpdate()">Update Now</button>
 </div>
 
+<!-- Splash screen — visible immediately while data loads -->
+<div id="splashScreen" class="splash">
+  <img src="ak-logo.png" alt="Action Karate">
+  <h2>Adult Demo Team</h2>
+  <div class="spinner"></div>
+  <p>Loading...</p>
+</div>
+
 <!-- Welcome screen — pick your name on first visit -->
 <div id="welcomeScreen" style="display:none;">
   <div class="header">
@@ -1122,7 +1145,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.15';
+const APP_VERSION = '3.16';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1181,6 +1204,15 @@ async function loadData() {
     document.getElementById('errorView').style.display = 'block';
   }
   document.getElementById('loadingView').style.display = 'none';
+  dismissSplash();
+}
+
+function dismissSplash() {
+  const splash = document.getElementById('splashScreen');
+  if (splash) {
+    splash.classList.add('fade-out');
+    setTimeout(() => splash.remove(), 300);
+  }
 }
 
 // ---- Welcome / Name Selection / PIN Auth ----
