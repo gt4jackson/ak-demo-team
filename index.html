@@ -236,6 +236,20 @@ body {
 .session-type.tournament { background: rgba(0, 200, 83, 0.15); color: var(--yes); }
 .session-type.performance { background: rgba(224, 64, 251, 0.15); color: #e040fb; }
 
+/* Event notes */
+.session-notes {
+  padding: 0 16px 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  margin: 0 12px;
+  padding-top: 10px;
+}
+.session-notes::before {
+  content: '📝 ';
+}
+
 /* RSVP buttons */
 .rsvp-bar {
   display: flex;
@@ -1108,7 +1122,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.14';
+const APP_VERSION = '3.15';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1492,6 +1506,7 @@ function renderSessions() {
             ${s.location ? `<div style="font-size:11px; color:var(--text-dim); margin-top:3px;">📍 ${s.location}</div>` : ''}
           </div>
         </div>
+        ${s.notes ? `<div class="session-notes">${s.notes}</div>` : ''}
         ${!isPast && !userIsCoach ? `
         <div class="rsvp-bar">
           <button class="rsvp-btn yes ${myStatus === 'yes' ? 'selected' : ''}" onclick="rsvp('${s.date}','yes',this)">
