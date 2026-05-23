@@ -556,19 +556,21 @@ body {
 
 /* Splash screen */
 .splash {
-  position: fixed; inset: 0; z-index: 9999;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9999;
   background: var(--bg);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   text-align: center;
-  gap: 20px;
+  gap: 16px;
+  padding: 20px;
   transition: opacity 0.3s ease;
 }
 .splash.fade-out { opacity: 0; pointer-events: none; }
-.splash img { width: 80px; height: 80px; border-radius: 16px; }
+.splash img { width: 80px; height: 80px; border-radius: 16px; object-fit: contain; }
 .splash h2 { font-size: 20px; font-weight: 700; color: var(--text); margin: 0; }
 .splash p { font-size: 13px; color: var(--text-dim); margin: 0; }
-.splash .spinner { width: 28px; height: 28px; margin: 0; }
+.splash .spinner { width: 28px; height: 28px; margin: 0 auto; }
 
 /* Loading & Error */
 .loading {
@@ -1063,7 +1065,7 @@ body {
     <button class="tab" data-tab="admin" onclick="switchTab('admin')" id="adminTab" style="display:none;">Admin</button>
   </div>
 
-  <div id="loadingView" class="loading">
+  <div id="loadingView" class="loading" style="display:none;">
     <div class="spinner"></div>
     <p>Loading schedule...</p>
   </div>
@@ -1179,7 +1181,8 @@ function setStored(key, val) {
 
 // ---- Data loading ----
 async function loadData() {
-  document.getElementById('loadingView').style.display = 'block';
+  const hasSplash = !!document.getElementById('splashScreen');
+  if (!hasSplash) document.getElementById('loadingView').style.display = 'block';
   document.getElementById('errorView').style.display = 'none';
   try {
     const res = await fetch(API_URL + '?action=getSchedule&token=' + API_TOKEN);
