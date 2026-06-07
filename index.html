@@ -1058,10 +1058,8 @@ body {
 
   <div class="tabs">
     <button class="tab active" data-tab="schedule" onclick="switchTab('schedule')">Schedule</button>
-    <button class="tab" data-tab="my" onclick="switchTab('my')">My Sessions</button>
     <button class="tab" data-tab="chat" onclick="switchTab('chat')">Team Chat<span class="badge" id="chatBadge"></span></button>
     <button class="tab" data-tab="resources" onclick="switchTab('resources')">Resources</button>
-    <button class="tab" data-tab="skills" onclick="switchTab('skills')">My Skills</button>
     <button class="tab" data-tab="admin" onclick="switchTab('admin')" id="adminTab" style="display:none;">Admin</button>
   </div>
 
@@ -1083,11 +1081,6 @@ body {
     <div id="sessionList"></div>
   </div>
 
-  <!-- My Sessions tab -->
-  <div id="mySection" class="section">
-    <div id="mySessions"></div>
-  </div>
-
   <!-- Chat tab -->
   <div id="chatSection" class="chat-section">
     <div class="messages" id="messageList">
@@ -1099,13 +1092,6 @@ body {
       <button id="sendBtn" onclick="sendMessage()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
       </button>
-    </div>
-  </div>
-
-  <!-- My Skills tab -->
-  <div id="skillsSection" class="section">
-    <div id="skillsList">
-      <p style="text-align:center; color:var(--text-dim); padding:40px;">Loading skills...</p>
     </div>
   </div>
 
@@ -1180,32 +1166,39 @@ function setStored(key, val) {
 }
 
 // ---- Data loading ----
-async function loadData() {
+async function loadData(retryCount = 0) {
+  const MAX_RETRIES = 2;
   const hasSplash = !!document.getElementById('splashScreen');
   if (!hasSplash) document.getElementById('loadingView').style.display = 'block';
   document.getElementById('errorView').style.display = 'none';
   try {
-    const res = await fetch(API_URL + '?action=getSchedule&token=' + API_TOKEN);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(API_URL + '?action=getSchedule&token=' + API_TOKEN, { signal: controller.signal });
+    clearTimeout(timeout);
     scheduleData = await res.json();
     if (scheduleData.error) throw new Error(scheduleData.error);
 
     const savedName = getStored('ak_user_locked');
     const pinAuth = getStored('ak_pin_auth');
     if (savedName && scheduleData.members.includes(savedName) && pinAuth === 'true') {
-      // Returning authenticated user — go straight to app
       currentUser = savedName;
       currentFamily = JSON.parse(getStored('ak_family_members') || '[]');
       gtag('set', 'user_properties', { team_member: currentUser });
       gtag('event', 'returning_visit', { team_member: currentUser });
       enterApp(currentUser);
     } else {
-      // First-time visitor or needs PIN — show welcome screen
       showWelcomeScreen();
     }
     document.getElementById('refreshNote').textContent = 'Updated ' + new Date().toLocaleTimeString();
   } catch(err) {
-    document.getElementById('errorView').textContent = 'Could not load data: ' + err.message;
-    document.getElementById('errorView').style.display = 'block';
+    if (retryCount < MAX_RETRIES) {
+      await new Promise(r => setTimeout(r, 1500 * (retryCount + 1)));
+      return loadData(retryCount + 1);
+    }
+    const errEl = document.getElementById('errorView');
+    errEl.innerHTML = 'Could not load data: ' + err.message + '<br><span style="font-size:13px; text-decoration:underline; cursor:pointer; margin-top:8px; display:inline-block;" onclick="loadData()">Tap to retry</span>';
+    errEl.style.display = 'block';
   }
   document.getElementById('loadingView').style.display = 'none';
   dismissSplash();
@@ -1464,7 +1457,6 @@ async function requestAccess() {
 function render() {
   renderStats();
   renderSessions();
-  renderMySessions();
 }
 
 function parseDate(dateStr) {
@@ -1580,37 +1572,6 @@ function renderSessions() {
   }).join('');
 }
 
-function renderMySessions() {
-  const now = new Date();
-  now.setHours(0,0,0,0);
-  const mySessions = scheduleData.sessions.filter(s => {
-    const st = s.attendance[currentUser];
-    return parseDate(s.date) >= now && (st === 'yes' || st === 'maybe');
-  });
-
-  const container = document.getElementById('mySessions');
-  if (mySessions.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px;">No upcoming sessions you\'ve committed to yet. Head to Schedule to RSVP!</p>';
-    return;
-  }
-
-  container.innerHTML = '<h3 style="font-size:16px; margin-bottom:12px;">My Upcoming Sessions</h3>' +
-    mySessions.map(s => {
-      const st = s.attendance[currentUser];
-      return `
-        <div class="session-card upcoming">
-          <div class="session-header">
-            <div>
-              <div class="session-date">${s.date}</div>
-              <div class="session-day">${s.day} &middot; ${s.time}${s.location ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location)}" target="_blank" rel="noopener" style="color:var(--text-dim); text-decoration:none;" onclick="event.stopPropagation();">📍 ${s.location}</a>` : ''}</div>
-            </div>
-            <span class="att-status ${st}">${st === 'yes' ? 'In' : 'Maybe'}</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-}
-
 // ---- Actions ----
 function toggleDetail(id) {
   document.getElementById(id).classList.toggle('open');
@@ -1662,7 +1623,6 @@ function switchTab(tab) {
   document.getElementById('chatSection').classList.remove('active');
 
   if (tab === 'schedule') document.getElementById('scheduleSection').classList.add('active');
-  else if (tab === 'my') document.getElementById('mySection').classList.add('active');
   else if (tab === 'chat') {
     document.getElementById('chatSection').classList.add('active');
     if (!chatLoaded) loadMessages();
@@ -1672,9 +1632,6 @@ function switchTab(tab) {
   } else if (tab === 'resources') {
     document.getElementById('resourcesSection').classList.add('active');
     if (!resourcesLoaded) loadResources();
-  } else if (tab === 'skills') {
-    document.getElementById('skillsSection').classList.add('active');
-    if (!skillsLoaded) loadSkills();
   } else if (tab === 'admin') {
     document.getElementById('adminSection').classList.add('active');
     if (!adminLoaded) loadAdmin();
@@ -1924,129 +1881,6 @@ function startChatRefresh() {
   chatRefreshTimer = setInterval(() => {
     if (currentTab === 'chat') loadMessages();
   }, 15000);
-}
-
-// ---- My Skills ----
-let skillsLoaded = false;
-let skillsData = { skills: [], members: {} };
-const SKILL_LABELS = ['No Interest/Ability', 'Low Interest/Ability', 'Moderate Interest/Ability', 'High Interest/Ability'];
-
-async function loadSkills() {
-  try {
-    const res = await fetch(API_URL + '?action=getSkills&token=' + API_TOKEN);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    skillsData = data;
-    skillsLoaded = true;
-    renderSkills();
-  } catch(err) {
-    document.getElementById('skillsList').innerHTML =
-      '<p style="text-align:center; color:var(--text-dim); padding:40px;">Could not load skills.</p>';
-  }
-}
-
-function renderSkills() {
-  const container = document.getElementById('skillsList');
-  const myRatings = skillsData.members[currentUser] || {};
-
-  if (skillsData.skills.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px;">No skills set up yet.</p>';
-    return;
-  }
-
-  let html = '<div class="skill-legend">';
-  html += '<span><span class="legend-swatch" style="background:var(--text-dim);"></span> 0 = No Interest</span>';
-  html += '<span><span class="legend-swatch" style="background:#ffab00;"></span> 1 = Low</span>';
-  html += '<span><span class="legend-swatch" style="background:#448aff;"></span> 2 = Moderate</span>';
-  html += '<span><span class="legend-swatch" style="background:#00c853;"></span> 3 = High</span>';
-  html += '</div>';
-
-  html += skillsData.skills.map(skill => {
-    const current = myRatings[skill];
-    const currentVal = (current === null || current === undefined) ? -1 : Number(current);
-    const safeSkill = skill.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    return `
-      <div class="skill-row">
-        <div class="skill-name">${escapeHtml(skill)}</div>
-        <div class="skill-dots">
-          ${[0,1,2,3].map(n => `
-            <button class="skill-dot level-${n} ${currentVal === n ? 'active' : ''}"
-                    onclick="setSkill('${safeSkill}', ${n}, this)">${n}</button>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  html += `
-    <div style="margin-top:20px; padding:16px; background:var(--card); border-radius:var(--radius); border:1px solid var(--border);">
-      <div style="font-size:14px; font-weight:600; margin-bottom:10px;">Suggest a New Weapon or Trick</div>
-      <div class="suggest-bar">
-        <input id="suggestInput" class="suggest-input" placeholder="e.g., Nunchucks, Backflip..." maxlength="50">
-        <button class="suggest-btn" onclick="suggestSkill()">Add</button>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
-}
-
-async function setSkill(skill, rating, btn) {
-  gtag('event', 'skill_rating', { skill_name: skill, rating: rating, team_member: currentUser });
-  // Optimistic UI
-  const row = btn.parentElement;
-  row.querySelectorAll('.skill-dot').forEach(d => d.classList.remove('active'));
-  btn.classList.add('active');
-
-  // Update local data
-  if (!skillsData.members[currentUser]) skillsData.members[currentUser] = {};
-  skillsData.members[currentUser][skill] = rating;
-
-  try {
-    await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        token: API_TOKEN,
-        action: 'updateSkill',
-        name: currentUser,
-        skill: skill,
-        rating: rating
-      })
-    });
-    showToast(skill + ' updated to ' + SKILL_LABELS[rating]);
-  } catch(err) {
-    showToast('Failed to save — try again');
-  }
-}
-
-async function suggestSkill() {
-  const input = document.getElementById('suggestInput');
-  const name = input.value.trim();
-  if (!name) return;
-
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        token: API_TOKEN,
-        action: 'suggestSkill',
-        skill: name
-      })
-    });
-    const data = await res.json();
-    if (data.error) {
-      showToast(data.error);
-      return;
-    }
-    input.value = '';
-    showToast(name + ' added!');
-    // Reload skills to show the new column
-    skillsData.skills.push(name);
-    if (skillsData.members[currentUser]) skillsData.members[currentUser][name] = null;
-    renderSkills();
-  } catch(err) {
-    showToast('Failed to add — try again');
-  }
 }
 
 // ---- Admin ----
