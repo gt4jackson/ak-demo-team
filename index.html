@@ -1232,7 +1232,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.19';
+const APP_VERSION = '3.20';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -2269,13 +2269,17 @@ function renderAdminPractices() {
       const maybeCount = Object.values(s.attendance).filter(v => v === 'maybe').length;
       const meta = [s.day, s.time, s.type].filter(Boolean).join(' · ');
       html += `
-        <div class="practice-item">
+        <div class="practice-item" id="pi-${s.row}">
           <div class="pi-info">
             <div class="pi-date">${s.date}</div>
             <div class="pi-meta">${meta}${s.location ? ' · 📍 ' + s.location : ''}</div>
+            ${s.notes ? '<div class="pi-meta" style="margin-top:2px;">📝 ' + escapeHtml(s.notes) + '</div>' : ''}
             <div class="pi-meta" style="margin-top:2px;">${yesCount} in · ${maybeCount} maybe</div>
           </div>
-          <button class="pi-delete" onclick="adminDeletePractice(${s.row}, '${safeDate}')">Remove</button>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="pi-delete" style="color:var(--text-dim); border-color:var(--border);" onclick="adminEditPractice(${s.row}, '${safeDate}')">Edit</button>
+            <button class="pi-delete" onclick="adminDeletePractice(${s.row}, '${safeDate}')">Remove</button>
+          </div>
         </div>
       `;
     });
@@ -2361,6 +2365,95 @@ async function adminDeletePractice(row, dateStr) {
     renderAdminPractices();
   } catch(err) {
     showToast('Failed to remove: ' + err.message);
+  }
+}
+
+function adminEditPractice(row, dateStr) {
+  const session = scheduleData.sessions.find(s => s.row === row);
+  if (!session) return;
+
+  // Convert display date (e.g., "Jun 19, 2026") to input date format (2026-06-19)
+  const d = parseDate(session.date);
+  const dateVal = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const types = ['Practice', 'Performance', 'Special Event', 'Competition', 'Workshop'];
+
+  const container = document.getElementById('pi-' + row);
+  container.className = 'practice-form';
+  container.innerHTML = `
+    <h3 style="margin-bottom:10px;">Edit Practice — ${session.date}</h3>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Date</label>
+        <input type="date" id="editDate-${row}" value="${dateVal}">
+      </div>
+      <div class="form-field">
+        <label>Time</label>
+        <input type="text" id="editTime-${row}" value="${escapeHtml(session.time || '')}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Type</label>
+        <select id="editType-${row}">
+          ${types.map(t => '<option value="' + t + '"' + (session.type === t ? ' selected' : '') + '>' + t + '</option>').join('')}
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Duration</label>
+        <input type="text" id="editDuration-${row}" value="${escapeHtml(session.duration || '')}">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-field">
+        <label>Location</label>
+        <input type="text" id="editLocation-${row}" value="${escapeHtml(session.location || '')}">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-field">
+        <label>Notes</label>
+        <input type="text" id="editNotes-${row}" value="${escapeHtml(session.notes || '')}" maxlength="200">
+      </div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="practice-add-btn" id="editSaveBtn-${row}" onclick="adminSaveEdit(${row}, '${dateStr}')" style="flex:1;">Save Changes</button>
+      <button class="practice-add-btn" onclick="renderAdminPractices()" style="flex:0 0 auto; background:var(--border); width:80px;">Cancel</button>
+    </div>
+  `;
+}
+
+async function adminSaveEdit(row, originalDate) {
+  const btn = document.getElementById('editSaveBtn-' + row);
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'editSession',
+        row: row,
+        originalDate: originalDate,
+        date: document.getElementById('editDate-' + row).value,
+        time: document.getElementById('editTime-' + row).value.trim(),
+        type: document.getElementById('editType-' + row).value,
+        duration: document.getElementById('editDuration-' + row).value.trim(),
+        location: document.getElementById('editLocation-' + row).value.trim(),
+        notes: document.getElementById('editNotes-' + row).value.trim()
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    showToast('Practice updated!');
+    await loadData();
+    renderAdminPractices();
+  } catch(err) {
+    showToast('Failed to save: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
   }
 }
 
