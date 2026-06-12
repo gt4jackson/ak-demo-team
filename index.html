@@ -554,6 +554,100 @@ body {
   white-space: nowrap;
 }
 
+/* Practice management */
+.practice-form {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.practice-form h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.form-row.full { flex-direction: column; }
+.form-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form-field label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-field input, .form-field select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.form-field input:focus, .form-field select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.practice-add-btn {
+  width: 100%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+}
+.practice-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.practice-item {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.practice-item .pi-info {
+  flex: 1;
+}
+.practice-item .pi-date {
+  font-weight: 700;
+  font-size: 14px;
+}
+.practice-item .pi-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.practice-item .pi-delete {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--no);
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 12px;
+}
+
 /* Splash screen */
 .splash {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -1105,12 +1199,16 @@ body {
   <!-- Admin tab (Mr Tanner only) -->
   <div id="adminSection" class="section">
     <div class="admin-sub-tabs">
-      <button class="admin-sub-tab active" data-subtab="weapons" onclick="switchAdminSub('weapons')">Weapons</button>
+      <button class="admin-sub-tab active" data-subtab="practices" onclick="switchAdminSub('practices')">Practices</button>
+      <button class="admin-sub-tab" data-subtab="weapons" onclick="switchAdminSub('weapons')">Weapons</button>
       <button class="admin-sub-tab" data-subtab="tricks" onclick="switchAdminSub('tricks')">Tricks</button>
-      <button class="admin-sub-tab" data-subtab="attendance" onclick="switchAdminSub('attendance')">Schedule</button>
+      <button class="admin-sub-tab" data-subtab="attendance" onclick="switchAdminSub('attendance')">Attendance</button>
       <button class="admin-sub-tab" data-subtab="pins" onclick="switchAdminSub('pins')">PINs</button>
     </div>
-    <div id="adminWeaponsView" class="admin-view">
+    <div id="adminPracticesView" class="admin-view">
+      <div id="adminPracticesList"></div>
+    </div>
+    <div id="adminWeaponsView" class="admin-view" style="display:none;">
       <p style="text-align:center; color:var(--text-dim); padding:40px;">Loading weapons...</p>
     </div>
     <div id="adminTricksView" class="admin-view" style="display:none;">
@@ -1134,7 +1232,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.18';
+const APP_VERSION = '3.19';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1886,13 +1984,14 @@ function startChatRefresh() {
 // ---- Admin ----
 let adminLoaded = false;
 let adminSkillsData = null;
-let currentAdminSub = 'weapons';
+let currentAdminSub = 'practices';
 
 function switchAdminSub(sub) {
   currentAdminSub = sub;
   document.querySelectorAll('.admin-sub-tab').forEach(t => t.classList.toggle('active', t.dataset.subtab === sub));
   document.querySelectorAll('.admin-view').forEach(v => v.style.display = 'none');
-  if (sub === 'weapons') document.getElementById('adminWeaponsView').style.display = '';
+  if (sub === 'practices') { document.getElementById('adminPracticesView').style.display = ''; renderAdminPractices(); }
+  else if (sub === 'weapons') document.getElementById('adminWeaponsView').style.display = '';
   else if (sub === 'tricks') document.getElementById('adminTricksView').style.display = '';
   else if (sub === 'attendance') document.getElementById('adminAttendanceView').style.display = '';
   else if (sub === 'pins') { document.getElementById('adminPinsView').style.display = ''; renderAdminPins(); }
@@ -1907,6 +2006,7 @@ async function loadAdmin() {
     if (adminSkillsData.error) throw new Error(adminSkillsData.error);
 
     adminLoaded = true;
+    renderAdminPractices();
     renderAdminWeapons();
     renderAdminTricks();
     renderAdminAttendance();
@@ -2096,6 +2196,171 @@ async function adminSetAttendance(memberName, dateStr, status, selectEl) {
     showToast(memberName + ' — ' + dateStr + ' → ' + (status || 'cleared'));
   } catch(err) {
     showToast('Failed to save — try again');
+  }
+}
+
+function renderAdminPractices() {
+  const container = document.getElementById('adminPracticesList');
+  if (!scheduleData || !scheduleData.sessions) {
+    container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px;">No schedule data.</p>';
+    return;
+  }
+
+  // Get today's date string for the date input min
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+  // Add practice form
+  let html = `
+    <div class="practice-form">
+      <h3>Add New Practice</h3>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Date *</label>
+          <input type="date" id="addPracticeDate" min="${todayStr}">
+        </div>
+        <div class="form-field">
+          <label>Time</label>
+          <input type="text" id="addPracticeTime" placeholder="e.g., 7:00 PM">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Type</label>
+          <select id="addPracticeType">
+            <option value="Practice">Practice</option>
+            <option value="Performance">Performance</option>
+            <option value="Special Event">Special Event</option>
+            <option value="Competition">Competition</option>
+            <option value="Workshop">Workshop</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Duration</label>
+          <input type="text" id="addPracticeDuration" placeholder="e.g., 1.5 hrs">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field">
+          <label>Location</label>
+          <input type="text" id="addPracticeLocation" placeholder="e.g., Action Karate Newtown">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field">
+          <label>Notes</label>
+          <input type="text" id="addPracticeNotes" placeholder="Optional notes..." maxlength="200">
+        </div>
+      </div>
+      <button class="practice-add-btn" id="addPracticeBtn" onclick="adminAddPractice()">Add Practice</button>
+    </div>
+  `;
+
+  // List upcoming practices with delete option
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const upcoming = scheduleData.sessions.filter(s => parseDate(s.date) >= now);
+
+  if (upcoming.length > 0) {
+    html += '<h3 style="font-size:15px; font-weight:700; margin-bottom:10px;">Upcoming Practices (' + upcoming.length + ')</h3>';
+    upcoming.forEach(s => {
+      const safeDate = s.date.replace(/'/g, "\\'");
+      const yesCount = Object.values(s.attendance).filter(v => v === 'yes').length;
+      const maybeCount = Object.values(s.attendance).filter(v => v === 'maybe').length;
+      const meta = [s.day, s.time, s.type].filter(Boolean).join(' · ');
+      html += `
+        <div class="practice-item">
+          <div class="pi-info">
+            <div class="pi-date">${s.date}</div>
+            <div class="pi-meta">${meta}${s.location ? ' · 📍 ' + s.location : ''}</div>
+            <div class="pi-meta" style="margin-top:2px;">${yesCount} in · ${maybeCount} maybe</div>
+          </div>
+          <button class="pi-delete" onclick="adminDeletePractice(${s.row}, '${safeDate}')">Remove</button>
+        </div>
+      `;
+    });
+  } else {
+    html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">No upcoming practices scheduled.</p>';
+  }
+
+  container.innerHTML = html;
+}
+
+async function adminAddPractice() {
+  const dateInput = document.getElementById('addPracticeDate');
+  const timeInput = document.getElementById('addPracticeTime');
+  const typeInput = document.getElementById('addPracticeType');
+  const durationInput = document.getElementById('addPracticeDuration');
+  const locationInput = document.getElementById('addPracticeLocation');
+  const notesInput = document.getElementById('addPracticeNotes');
+  const btn = document.getElementById('addPracticeBtn');
+
+  if (!dateInput.value) { showToast('Please select a date'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'addSession',
+        date: dateInput.value,
+        time: timeInput.value.trim(),
+        type: typeInput.value,
+        duration: durationInput.value.trim(),
+        location: locationInput.value.trim(),
+        notes: notesInput.value.trim()
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    showToast('Practice added!');
+    // Clear form
+    dateInput.value = '';
+    timeInput.value = '';
+    typeInput.value = 'Practice';
+    durationInput.value = '';
+    locationInput.value = '';
+    notesInput.value = '';
+
+    // Reload schedule data to reflect new practice
+    await loadData();
+    renderAdminPractices();
+  } catch(err) {
+    showToast('Failed to add: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Practice';
+  }
+}
+
+async function adminDeletePractice(row, dateStr) {
+  if (!confirm('Remove the practice on ' + dateStr + '? This cannot be undone.')) return;
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'deleteSession',
+        row: row,
+        date: dateStr
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    showToast('Practice removed');
+    // Reload schedule data
+    await loadData();
+    renderAdminPractices();
+  } catch(err) {
+    showToast('Failed to remove: ' + err.message);
   }
 }
 
