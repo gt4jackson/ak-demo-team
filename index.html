@@ -36,7 +36,26 @@ gtag('config', 'G-JRY55TDG8R', { send_page_views: true });
   --text-dim: #888;
   --border: #2a2a4a;
   --radius: 14px;
+  --header-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --shadow-color: rgba(0,0,0,0.5);
 }
+body.light-mode {
+  --bg: #f4f4f8;
+  --card: #ffffff;
+  --card-hover: #eeeef4;
+  --accent: #e94560;
+  --accent-glow: rgba(233, 69, 96, 0.15);
+  --yes: #00a844;
+  --no: #e53935;
+  --maybe: #e89500;
+  --text: #1a1a2e;
+  --text-dim: #6b6b80;
+  --border: #dcdce5;
+  --header-bg: linear-gradient(135deg, #f8f8fc 0%, #eef1f8 100%);
+  --shadow-color: rgba(0,0,0,0.1);
+}
+body.font-small { font-size: 13px; }
+body.font-large { font-size: 17px; }
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -51,7 +70,7 @@ body {
 
 /* Header */
 .header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: var(--header-bg);
   padding: 14px 16px;
   position: sticky;
   top: 0;
@@ -101,8 +120,8 @@ body {
   padding: 0;
 }
 
-/* Notification Bell */
-.notif-bell {
+/* Settings Button */
+.settings-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -112,21 +131,73 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  position: relative;
-  font-size: 16px;
+  font-size: 18px;
   flex-shrink: 0;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, color 0.2s;
+  color: var(--text-dim);
 }
-.notif-bell.enabled { border-color: var(--accent); }
-.notif-dot {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 8px;
-  height: 8px;
-  background: var(--yes);
-  border-radius: 50%;
+.settings-btn:hover, .settings-btn:active { border-color: var(--accent); color: var(--accent); }
+
+/* Settings Panel */
+.settings-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); z-index: 500;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
 }
+.settings-overlay.show { opacity: 1; pointer-events: auto; }
+.settings-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 290px; max-width: 85vw;
+  background: var(--card); z-index: 501; padding: 20px;
+  transform: translateX(100%); transition: transform 0.3s ease;
+  box-shadow: -4px 0 24px var(--shadow-color);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.settings-panel.show { transform: translateX(0); }
+.settings-title {
+  font-size: 18px; font-weight: 700; color: var(--text);
+  margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;
+}
+.settings-close {
+  background: none; border: none; font-size: 22px; cursor: pointer;
+  color: var(--text-dim); padding: 4px; line-height: 1;
+}
+.setting-group { margin-bottom: 24px; }
+.setting-group-label {
+  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 12px; font-weight: 600;
+}
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 14px; color: var(--text); }
+.setting-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.toggle-sw {
+  width: 44px; height: 24px; background: var(--border); border-radius: 12px;
+  position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+  border: none; padding: 0;
+}
+.toggle-sw.on { background: var(--accent); }
+.toggle-sw::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; background: white; border-radius: 50%;
+  transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-sw.on::after { transform: translateX(20px); }
+.setting-btn {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 16px; font-size: 13px; color: var(--text); cursor: pointer; font-weight: 500;
+}
+.setting-btn:hover, .setting-btn:active { border-color: var(--accent); color: var(--accent); }
+.font-selector { display: flex; gap: 6px; }
+.font-opt {
+  width: 36px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
+  background: none; cursor: pointer; font-weight: 600; color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+}
+.font-opt.active { border-color: var(--accent); color: var(--accent); background: rgba(233,69,96,0.08); }
+.settings-version { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 16px; }
 
 /* Tabs */
 .tabs {
@@ -200,9 +271,9 @@ body {
 }
 .session-card.upcoming { border-left: 3px solid var(--accent); }
 .session-card.past { opacity: 0.5; }
-.session-card.performance { background: #1e1a2e; border-color: rgba(224, 64, 251, 0.3); }
+.session-card.performance { background: rgba(224, 64, 251, 0.06); border-color: rgba(224, 64, 251, 0.3); }
 .session-card.performance.upcoming { border-left: 3px solid #e040fb; }
-.session-card.tournament { background: #1a2e1e; border-color: rgba(0, 200, 83, 0.3); }
+.session-card.tournament { background: rgba(0, 200, 83, 0.06); border-color: rgba(0, 200, 83, 0.3); }
 .session-card.tournament.upcoming { border-left: 3px solid var(--yes); }
 .session-card.cancelled { border-left: 3px solid #888 !important; opacity: 0.7; }
 .cancelled-badge {
@@ -388,6 +459,112 @@ body {
   text-decoration: none;
 }
 
+/* Resource Management */
+.res-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 8px;
+}
+.res-section-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.res-add-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.file-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.file-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.file-info { flex: 1; min-width: 0; }
+.file-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.file-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-decoration: none;
+}
+.file-btn.open-btn { color: var(--accent); border-color: var(--accent); }
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  margin: 8px 0;
+  transition: border-color 0.2s;
+}
+.upload-area.dragover { border-color: var(--accent); }
+.upload-area p { color: var(--text-dim); font-size: 13px; margin: 4px 0 0; }
+.upload-progress {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.upload-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s;
+}
+.tab-toggle {
+  display: flex;
+  gap: 0;
+  margin: 8px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.tab-toggle button {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: var(--card);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.tab-toggle button.active {
+  background: var(--accent);
+  color: white;
+}
+
 /* My Skills */
 .skill-row {
   background: var(--card);
@@ -509,7 +686,7 @@ body {
   z-index: 3;
   min-width: 100px;
   border-right: 2px solid var(--border);
-  box-shadow: 4px 0 8px rgba(0,0,0,0.5);
+  box-shadow: 4px 0 8px var(--shadow-color);
 }
 .admin-table td {
   padding: 6px 8px;
@@ -525,7 +702,7 @@ body {
   z-index: 1;
   white-space: nowrap;
   border-right: 2px solid var(--border);
-  box-shadow: 4px 0 8px rgba(0,0,0,0.5);
+  box-shadow: 4px 0 8px var(--shadow-color);
 }
 .admin-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
 .admin-table tr:nth-child(even) td:first-child { background: var(--bg); }
@@ -1144,10 +1321,39 @@ body {
       <button class="header-user-change" id="switchMemberBtn" onclick="showFamilySwitcher()" style="display:none;">Switch</button>
       <button class="header-user-change" onclick="changeName()">Change</button>
     </div>
-    <button class="notif-bell" id="notifBell" onclick="toggleNotifications()" title="Enable Notifications" style="display:none;">
-      <span class="bell-icon">🔔</span>
-      <span class="notif-dot" id="notifDot" style="display:none;"></span>
-    </button>
+    <button class="settings-btn" onclick="openSettings()" title="Settings">&#9881;</button>
+  </div>
+
+  <div class="settings-overlay" id="settingsOverlay" onclick="closeSettings()"></div>
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-title">Settings <button class="settings-close" onclick="closeSettings()">&times;</button></div>
+    <div class="setting-group">
+      <div class="setting-group-label">Preferences</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Notifications</div><div class="setting-desc">Push alerts for updates</div></div>
+        <button class="toggle-sw" id="notifToggle" onclick="toggleNotifications()"></button>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Dark mode</div><div class="setting-desc">Switch appearance</div></div>
+        <button class="toggle-sw on" id="darkToggle" onclick="toggleDarkMode()"></button>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Font size</div></div>
+        <div class="font-selector">
+          <button class="font-opt" style="font-size:12px;" onclick="setFontSize('small',this)">A</button>
+          <button class="font-opt active" style="font-size:15px;" onclick="setFontSize('medium',this)">A</button>
+          <button class="font-opt" style="font-size:18px;" onclick="setFontSize('large',this)">A</button>
+        </div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-group-label">Account</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Reset PIN</div><div class="setting-desc">Request a new login PIN</div></div>
+        <button class="setting-btn" onclick="resetMyPin()">Reset</button>
+      </div>
+    </div>
+    <div class="settings-version" id="settingsVersion"></div>
   </div>
 
   <div class="tabs">
@@ -1194,6 +1400,16 @@ body {
     <div id="resourcesList">
       <p style="text-align:center; color:var(--text-dim); padding:40px;">Loading resources...</p>
     </div>
+    <div id="teamFilesArea" style="display:none;">
+      <div class="res-section-header" style="margin-top:24px;">
+        <h3>Team Files</h3>
+        <button class="res-add-btn" id="addFileBtn" style="display:none;" onclick="showAddFileForm()">+ Add File</button>
+      </div>
+      <div id="addFileFormArea"></div>
+      <div id="teamFilesList">
+        <p style="text-align:center; color:var(--text-dim); padding:20px;">Loading...</p>
+      </div>
+    </div>
   </div>
 
   <!-- Admin tab (Mr Tanner only) -->
@@ -1232,7 +1448,7 @@ body {
 // ---- State ----
 let API_URL = 'https://script.google.com/macros/s/AKfycbwdRHGfOtYqb14jt5mJyZjrNp4eiWmk_jqJSIiqIxHGdXJ8JIvbaGpivkTIBuFaleDE/exec';
 const API_TOKEN = 'ak-demo-2026-newtown';
-const APP_VERSION = '3.20';
+const APP_VERSION = '3.22';
 let scheduleData = null;
 const COACH_ROLES = ['coach', 'administrator'];
 function isCoach(name) {
@@ -1521,10 +1737,8 @@ function changeName() {
     setStored('fcm_subscribed', '');
     setStored('ak_pin_auth', '');
     setStored('ak_family_members', '[]');
-    const bell = document.getElementById('notifBell');
-    if (bell) { bell.classList.remove('enabled'); }
-    const dot = document.getElementById('notifDot');
-    if (dot) { dot.style.display = 'none'; }
+    const notifToggle = document.getElementById('notifToggle');
+    if (notifToggle) notifToggle.classList.remove('on');
     const switchBtn = document.getElementById('switchMemberBtn');
     if (switchBtn) switchBtn.style.display = 'none';
     showWelcomeScreen();
@@ -2498,6 +2712,8 @@ async function adminResetPin(memberName) {
 // ---- Resources ----
 let resourcesLoaded = false;
 let resourcesData = [];
+let teamFilesLoaded = false;
+let teamFilesData = [];
 
 async function loadResources() {
   try {
@@ -2511,39 +2727,59 @@ async function loadResources() {
     document.getElementById('resourcesList').innerHTML =
       '<p style="text-align:center; color:var(--text-dim); padding:40px;">Could not load resources.</p>';
   }
+  // Also load team files
+  loadTeamFiles();
 }
 
 function renderResources() {
   const container = document.getElementById('resourcesList');
-  if (resourcesData.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px;">No resources yet.</p>';
-    return;
-  }
-  container.innerHTML = resourcesData.map((r, i) => {
-    const moveCount = r.moves.length;
-    const meta = [
-      moveCount ? moveCount + ' moves' : '',
-      r.startPosition ? 'Starting: ' + r.startPosition : '',
-      r.videoUrl ? 'Video' : ''
-    ].filter(Boolean).join(' \u00b7 ');
+  const admin = isAdmin(currentUser);
+  let html = '';
 
-    return `
-      <div class="resource-card">
-        <div class="resource-header" onclick="toggleResource(${i})">
-          <div>
-            <div class="resource-title">${escapeHtml(r.name)}</div>
-            <div class="resource-meta">${meta}</div>
+  html += '<div class="res-section-header"><h3>Routines</h3>';
+  if (admin) html += '<button class="res-add-btn" onclick="showAddRoutineForm()">+ Add Routine</button>';
+  html += '</div>';
+  html += '<div id="addRoutineFormArea"></div>';
+
+  if (resourcesData.length === 0) {
+    html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">No routines yet.</p>';
+  } else {
+    html += resourcesData.map((r, i) => {
+      const moveCount = r.moves.length;
+      const meta = [
+        moveCount ? moveCount + ' moves' : '',
+        r.startPosition ? 'Starting: ' + r.startPosition : '',
+        r.videoUrl ? 'Video' : ''
+      ].filter(Boolean).join(' \u00b7 ');
+      const safeName = escapeHtml(r.name).replace(/'/g, "\\'");
+
+      return `
+        <div class="resource-card">
+          <div class="resource-header" onclick="toggleResource(${i})">
+            <div>
+              <div class="resource-title">${escapeHtml(r.name)}</div>
+              <div class="resource-meta">${meta}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              ${admin ? '<button class="file-btn" onclick="event.stopPropagation(); adminDeleteRoutine(' + r.row + ', \'' + safeName + '\')">Delete</button>' : ''}
+              <span class="resource-chevron" id="resChev${i}">&#9654;</span>
+            </div>
           </div>
-          <span class="resource-chevron" id="resChev${i}">&#9654;</span>
+          <div class="resource-body" id="resBody${i}">
+            ${r.startPosition ? '<div class="resource-start"><strong>Starting Position:</strong> ' + escapeHtml(r.startPosition) + '</div>' : ''}
+            ${moveCount ? '<ol class="step-list">' + r.moves.map(m => '<li class="step-item">' + escapeHtml(m) + '</li>').join('') + '</ol>' : ''}
+            ${r.videoUrl ? '<a href="' + escapeHtml(r.videoUrl) + '" target="_blank" rel="noopener noreferrer" class="video-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Watch Demo Video</a>' : ''}
+          </div>
         </div>
-        <div class="resource-body" id="resBody${i}">
-          ${r.startPosition ? '<div class="resource-start"><strong>Starting Position:</strong> ' + escapeHtml(r.startPosition) + '</div>' : ''}
-          ${moveCount ? '<ol class="step-list">' + r.moves.map(m => '<li class="step-item">' + escapeHtml(m) + '</li>').join('') + '</ol>' : ''}
-          ${r.videoUrl ? '<a href="' + escapeHtml(r.videoUrl) + '" target="_blank" rel="noopener noreferrer" class="video-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Watch Demo Video</a>' : ''}
-        </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }
+
+  container.innerHTML = html;
+
+  // Show team files area
+  document.getElementById('teamFilesArea').style.display = 'block';
+  if (admin) document.getElementById('addFileBtn').style.display = '';
 }
 
 function toggleResource(idx) {
@@ -2551,6 +2787,286 @@ function toggleResource(idx) {
   const chev = document.getElementById('resChev' + idx);
   body.classList.toggle('open');
   chev.classList.toggle('open');
+}
+
+// ---- Routine Management (Admin) ----
+
+function showAddRoutineForm() {
+  document.getElementById('addRoutineFormArea').innerHTML = `
+    <div class="practice-form" style="margin-bottom:16px;">
+      <h3 style="margin-bottom:10px;">Add Routine</h3>
+      <div class="form-row">
+        <div class="form-field"><label>Routine Name</label><input type="text" id="newRoutineName" placeholder="e.g. Bo Staff Form 1"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Starting Position</label><input type="text" id="newRoutineStart" placeholder="e.g. Feet together, bow"></div>
+        <div class="form-field"><label>Video URL (optional)</label><input type="text" id="newRoutineVideo" placeholder="YouTube or other link"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field"><label>Moves (one per line)</label><textarea id="newRoutineMoves" rows="6" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; resize:vertical;" placeholder="Step 1&#10;Step 2&#10;Step 3"></textarea></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="practice-add-btn" id="saveRoutineBtn" onclick="adminAddRoutine()" style="flex:1;">Save Routine</button>
+        <button class="practice-add-btn" onclick="document.getElementById('addRoutineFormArea').innerHTML=''" style="flex:0 0 auto; background:var(--border); width:80px;">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+async function adminAddRoutine() {
+  const name = document.getElementById('newRoutineName').value.trim();
+  if (!name) { showToast('Routine name is required'); return; }
+  const btn = document.getElementById('saveRoutineBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: API_TOKEN,
+        action: 'addResource',
+        name: name,
+        startPosition: document.getElementById('newRoutineStart').value.trim(),
+        videoUrl: document.getElementById('newRoutineVideo').value.trim(),
+        moves: document.getElementById('newRoutineMoves').value
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showToast('Routine added!');
+    resourcesLoaded = false;
+    loadResources();
+  } catch(err) {
+    showToast('Failed: ' + err.message);
+    btn.disabled = false; btn.textContent = 'Save Routine';
+  }
+}
+
+async function adminDeleteRoutine(row, name) {
+  if (!confirm('Delete routine "' + name + '"? This cannot be undone.')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ token: API_TOKEN, action: 'deleteResource', row: row, name: name })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showToast('Routine deleted');
+    resourcesLoaded = false;
+    loadResources();
+  } catch(err) {
+    showToast('Failed: ' + err.message);
+  }
+}
+
+// ---- Team Files ----
+
+function getFileIcon(fileType) {
+  const icons = { pdf:'\ud83d\udcc4', doc:'\ud83d\udcdd', docx:'\ud83d\udcdd', xls:'\ud83d\udcca', xlsx:'\ud83d\udcca', ppt:'\ud83d\udcce', pptx:'\ud83d\udcce',
+    jpg:'\ud83d\uddbc\ufe0f', jpeg:'\ud83d\uddbc\ufe0f', png:'\ud83d\uddbc\ufe0f', gif:'\ud83d\uddbc\ufe0f', heic:'\ud83d\uddbc\ufe0f', webp:'\ud83d\uddbc\ufe0f',
+    mp4:'\ud83c\udfac', mov:'\ud83c\udfac', avi:'\ud83c\udfac', mkv:'\ud83c\udfac', mp3:'\ud83c\udfb5', wav:'\ud83c\udfb5',
+    youtube:'\u25b6\ufe0f', vimeo:'\u25b6\ufe0f', gdrive:'\u2601\ufe0f', link:'\ud83d\udd17', zip:'\ud83d\udce6', txt:'\ud83d\udcc3' };
+  return icons[fileType] || '\ud83d\udcc1';
+}
+
+async function loadTeamFiles() {
+  try {
+    const res = await fetch(API_URL + '?action=getTeamFiles&token=' + API_TOKEN);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    teamFilesData = data.files || [];
+    teamFilesLoaded = true;
+    renderTeamFiles();
+  } catch(err) {
+    document.getElementById('teamFilesList').innerHTML =
+      '<p style="text-align:center; color:var(--text-dim); padding:20px;">Could not load files.</p>';
+  }
+}
+
+function renderTeamFiles() {
+  const container = document.getElementById('teamFilesList');
+  const admin = isAdmin(currentUser);
+  if (teamFilesData.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:20px;">No files shared yet.</p>';
+    return;
+  }
+  container.innerHTML = teamFilesData.map(f => {
+    const icon = getFileIcon(f.fileType);
+    const meta = [f.category, f.uploadedBy, f.date].filter(Boolean).join(' \u00b7 ');
+    return `
+      <div class="file-card">
+        <div class="file-icon">${icon}</div>
+        <div class="file-info">
+          <div class="file-title">${escapeHtml(f.title)}</div>
+          <div class="file-meta">${meta}</div>
+        </div>
+        <div class="file-actions">
+          <a href="${escapeHtml(f.url)}" target="_blank" rel="noopener" class="file-btn open-btn">Open</a>
+          ${admin ? '<button class="file-btn" onclick="adminDeleteTeamFile(' + f.row + ', \'' + (f.driveFileId || '').replace(/'/g, "\\'") + '\')">Delete</button>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showAddFileForm() {
+  const area = document.getElementById('addFileFormArea');
+  area.innerHTML = `
+    <div class="practice-form" style="margin-bottom:16px;">
+      <h3 style="margin-bottom:10px;">Add File or Link</h3>
+      <div class="form-row">
+        <div class="form-field"><label>Title</label><input type="text" id="newFileTitle" placeholder="e.g. Bo Staff Tutorial"></div>
+        <div class="form-field"><label>Category</label>
+          <select id="newFileCategory">
+            <option value="Video">Video</option>
+            <option value="Document">Document</option>
+            <option value="Image">Image</option>
+            <option value="Other" selected>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="tab-toggle">
+        <button class="active" onclick="switchFileMode('upload', this)">Upload from Device</button>
+        <button onclick="switchFileMode('url', this)">Paste a URL</button>
+      </div>
+      <div id="fileModeUpload">
+        <div class="upload-area" id="uploadDropZone" onclick="document.getElementById('filePickerInput').click()">
+          <div style="font-size:28px;">\ud83d\udcce</div>
+          <p>Tap to choose a file<br><span style="font-size:11px;">(Max 10 MB \u2014 photos, PDFs, docs, videos)</span></p>
+        </div>
+        <input type="file" id="filePickerInput" style="display:none;" onchange="handleFilePicked(this)">
+        <div id="filePickedInfo" style="display:none; padding:8px 0; font-size:13px; color:var(--text-dim);"></div>
+        <div class="upload-progress" id="uploadProgress" style="display:none;">
+          <div class="upload-progress-bar" id="uploadProgressBar"></div>
+        </div>
+      </div>
+      <div id="fileModeUrl" style="display:none;">
+        <div class="form-row full">
+          <div class="form-field"><label>URL</label><input type="text" id="newFileUrl" placeholder="https://youtube.com/watch?v=..."></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="practice-add-btn" id="saveFileBtn" onclick="adminSaveFile()" style="flex:1;">Save</button>
+        <button class="practice-add-btn" onclick="document.getElementById('addFileFormArea').innerHTML=''" style="flex:0 0 auto; background:var(--border); width:80px;">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+let pickedFile = null;
+let fileMode = 'upload';
+
+function switchFileMode(mode, btn) {
+  fileMode = mode;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('fileModeUpload').style.display = mode === 'upload' ? '' : 'none';
+  document.getElementById('fileModeUrl').style.display = mode === 'url' ? '' : 'none';
+}
+
+function handleFilePicked(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('File is too large (max 10 MB). Try pasting a URL instead.');
+    input.value = '';
+    return;
+  }
+  pickedFile = file;
+  const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+  document.getElementById('filePickedInfo').style.display = '';
+  document.getElementById('filePickedInfo').textContent = '\ud83d\udcce ' + file.name + ' (' + sizeMB + ' MB)';
+  // Auto-set title if empty
+  if (!document.getElementById('newFileTitle').value.trim()) {
+    document.getElementById('newFileTitle').value = file.name.replace(/\.[^.]+$/, '');
+  }
+  // Auto-detect category
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (['mp4','mov','avi','mkv','webm'].includes(ext)) document.getElementById('newFileCategory').value = 'Video';
+  else if (['jpg','jpeg','png','gif','heic','webp'].includes(ext)) document.getElementById('newFileCategory').value = 'Image';
+  else if (['pdf','doc','docx','txt','xls','xlsx','ppt','pptx'].includes(ext)) document.getElementById('newFileCategory').value = 'Document';
+}
+
+async function adminSaveFile() {
+  const title = document.getElementById('newFileTitle').value.trim();
+  if (!title) { showToast('Title is required'); return; }
+  const category = document.getElementById('newFileCategory').value;
+  const btn = document.getElementById('saveFileBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    if (fileMode === 'url') {
+      const url = document.getElementById('newFileUrl').value.trim();
+      if (!url) { showToast('URL is required'); btn.disabled = false; btn.textContent = 'Save'; return; }
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ token: API_TOKEN, action: 'addTeamFile', title: title, url: url, category: category, uploadedBy: currentUser })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+    } else {
+      if (!pickedFile) { showToast('Please choose a file'); btn.disabled = false; btn.textContent = 'Save'; return; }
+      document.getElementById('uploadProgress').style.display = '';
+      document.getElementById('uploadProgressBar').style.width = '30%';
+
+      // Read file as base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(pickedFile);
+      });
+      document.getElementById('uploadProgressBar').style.width = '60%';
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          token: API_TOKEN,
+          action: 'uploadFile',
+          title: title,
+          category: category,
+          uploadedBy: currentUser,
+          base64: base64,
+          fileName: pickedFile.name,
+          mimeType: pickedFile.type || 'application/octet-stream'
+        })
+      });
+      document.getElementById('uploadProgressBar').style.width = '90%';
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      document.getElementById('uploadProgressBar').style.width = '100%';
+    }
+
+    showToast('File added!');
+    pickedFile = null;
+    document.getElementById('addFileFormArea').innerHTML = '';
+    teamFilesLoaded = false;
+    loadTeamFiles();
+  } catch(err) {
+    showToast('Failed: ' + err.message);
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+}
+
+async function adminDeleteTeamFile(row, fileId) {
+  if (!confirm('Delete this file? This cannot be undone.')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ token: API_TOKEN, action: 'deleteTeamFile', row: row, fileId: fileId })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showToast('File deleted');
+    teamFilesLoaded = false;
+    loadTeamFiles();
+  } catch(err) {
+    showToast('Failed: ' + err.message);
+  }
 }
 
 // ---- Pull to Refresh ----
@@ -2599,6 +3115,75 @@ document.addEventListener('touchend', async () => {
   ptr.style.height = '0';
 });
 
+// ---- Settings Panel ----
+function openSettings() {
+  document.getElementById('settingsOverlay').classList.add('show');
+  document.getElementById('settingsPanel').classList.add('show');
+  document.getElementById('settingsVersion').textContent = 'AK Demo Team v' + APP_VERSION;
+  syncSettingsUI();
+}
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('show');
+  document.getElementById('settingsPanel').classList.remove('show');
+}
+function syncSettingsUI() {
+  const notifToggle = document.getElementById('notifToggle');
+  if (getStored('fcm_subscribed') === 'true') notifToggle.classList.add('on');
+  else notifToggle.classList.remove('on');
+  const darkToggle = document.getElementById('darkToggle');
+  if (document.body.classList.contains('light-mode')) darkToggle.classList.remove('on');
+  else darkToggle.classList.add('on');
+  const fontSize = getStored('ak_font_size') || 'medium';
+  document.querySelectorAll('.font-opt').forEach(b => b.classList.remove('active'));
+  const fontBtns = document.querySelectorAll('.font-opt');
+  if (fontSize === 'small') fontBtns[0].classList.add('active');
+  else if (fontSize === 'large') fontBtns[2].classList.add('active');
+  else fontBtns[1].classList.add('active');
+}
+
+function toggleDarkMode() {
+  const isLight = document.body.classList.toggle('light-mode');
+  setStored('ak_theme', isLight ? 'light' : 'dark');
+  document.querySelector('meta[name="theme-color"]').content = isLight ? '#f4f4f8' : '#1a1a2e';
+  syncSettingsUI();
+}
+
+function setFontSize(size, btn) {
+  document.body.classList.remove('font-small', 'font-large');
+  if (size === 'small') document.body.classList.add('font-small');
+  else if (size === 'large') document.body.classList.add('font-large');
+  setStored('ak_font_size', size);
+  document.querySelectorAll('.font-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function resetMyPin() {
+  if (!currentUser) { showToast('Please sign in first'); return; }
+  if (!confirm('Reset your PIN? You\'ll be signed out and need to request a new PIN from an admin.')) return;
+  currentUser = null;
+  currentFamily = [];
+  setStored('ak_pin_auth', '');
+  setStored('ak_family_members', '[]');
+  setStored('ak_user_locked', '');
+  closeSettings();
+  document.getElementById('adminTab').style.display = 'none';
+  if (currentTab === 'admin') switchTab('schedule');
+  showWelcomeScreen();
+  showToast('PIN reset — please request a new PIN from your admin');
+}
+
+function applyStoredPreferences() {
+  const theme = getStored('ak_theme');
+  if (theme === 'light') {
+    document.body.classList.add('light-mode');
+    document.querySelector('meta[name="theme-color"]').content = '#f4f4f8';
+  }
+  const fontSize = getStored('ak_font_size');
+  if (fontSize === 'small') document.body.classList.add('font-small');
+  else if (fontSize === 'large') document.body.classList.add('font-large');
+}
+applyStoredPreferences();
+
 // ---- Push Notifications (Firebase Cloud Messaging) ----
 const VAPID_KEY = 'BMZesNttvJzb1cqTlPrO3PW3Jx6Znjbqk15rUGQLANRFKC5A2AKgHuY3WorAKW1lTe7r9EgjsZQyG3umUkTM60k';
 const FIREBASE_CONFIG = {
@@ -2617,15 +3202,12 @@ function initFirebase() {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     fcmMessaging = firebase.messaging();
-    document.getElementById('notifBell').style.display = 'flex';
     if (getStored('fcm_subscribed') === 'true') {
-      document.getElementById('notifBell').classList.add('enabled');
-      document.getElementById('notifDot').style.display = 'block';
+      document.getElementById('notifToggle').classList.add('on');
     }
     fcmMessaging.onMessage((payload) => {
       const notif = payload.notification || payload.data || {};
       showToast(notif.body || notif.title || 'New notification');
-      // If it's a chat message and we're not on chat tab, refresh messages to update badge
       if (currentTab !== 'chat') loadMessages();
     });
   } catch(e) { console.log('Firebase init:', e); }
@@ -2634,40 +3216,37 @@ function initFirebase() {
 async function toggleNotifications() {
   if (!fcmMessaging) { showToast('Notifications not supported'); return; }
   if (!currentUser) { showToast('Please sign in first'); return; }
+  const toggle = document.getElementById('notifToggle');
   if (getStored('fcm_subscribed') === 'true') {
-    if (confirm('Notifications are on. Turn them off?')) {
-      try {
-        await fcmMessaging.deleteToken();
-        await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ token: API_TOKEN, action: 'removeNotifToken', name: currentUser })
-        });
-      } catch(e) {}
-      setStored('fcm_subscribed', '');
-      setStored('fcm_token', '');
-      document.getElementById('notifBell').classList.remove('enabled');
-      document.getElementById('notifDot').style.display = 'none';
-      showToast('Notifications turned off');
-    }
+    try {
+      await fcmMessaging.deleteToken();
+      await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ token: API_TOKEN, action: 'removeNotifToken', name: currentUser })
+      });
+    } catch(e) {}
+    setStored('fcm_subscribed', '');
+    setStored('fcm_token', '');
+    toggle.classList.remove('on');
+    showToast('Notifications turned off');
     return;
   }
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') { showToast('Permission denied'); return; }
     const swReg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
-    const token = await fcmMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
-    if (!token) { showToast('Could not get token'); return; }
+    const tkn = await fcmMessaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+    if (!tkn) { showToast('Could not get token'); return; }
     const res = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify({ token: API_TOKEN, action: 'saveNotifToken', name: currentUser, fcmToken: token })
+      body: JSON.stringify({ token: API_TOKEN, action: 'saveNotifToken', name: currentUser, fcmToken: tkn })
     });
     const data = await res.json();
     if (data.success) {
       setStored('fcm_subscribed', 'true');
-      setStored('fcm_token', token);
-      document.getElementById('notifBell').classList.add('enabled');
-      document.getElementById('notifDot').style.display = 'block';
-      showToast('Notifications enabled! 🔔');
+      setStored('fcm_token', tkn);
+      toggle.classList.add('on');
+      showToast('Notifications enabled!');
     } else { showToast('Error saving preference'); }
   } catch(e) { console.error('Notif error:', e); showToast('Error enabling notifications'); }
 }
@@ -2679,7 +3258,6 @@ setTimeout(initFirebase, 1000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     if ('clearAppBadge' in navigator && currentTab === 'chat') navigator.clearAppBadge().catch(() => {});
-    // Refresh messages to catch any sent while away
     if (chatLoaded) loadMessages();
   }
 });
