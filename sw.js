@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ak-demo-v5';
+const CACHE_NAME = 'ak-demo-v6';
 const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './ak-logo.png'];
 
 self.addEventListener('install', e => {
