@@ -1851,15 +1851,15 @@ function renderSessions() {
         ${s.notes ? `<div class="session-notes">${s.notes}</div>` : ''}
         ${!isPast && !userIsCoach ? `
         <div class="rsvp-bar">
-          <button class="rsvp-btn yes ${myStatus === 'yes' ? 'selected' : ''}" onclick="rsvp('${s.date}','yes',this)">
+          <button class="rsvp-btn yes ${myStatus === 'yes' ? 'selected' : ''}" onclick="rsvp('${s.date}','${s.time}','yes',this)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
             In
           </button>
-          <button class="rsvp-btn maybe ${myStatus === 'maybe' ? 'selected' : ''}" onclick="rsvp('${s.date}','maybe',this)">
+          <button class="rsvp-btn maybe ${myStatus === 'maybe' ? 'selected' : ''}" onclick="rsvp('${s.date}','${s.time}','maybe',this)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             Maybe
           </button>
-          <button class="rsvp-btn no ${myStatus === 'no' ? 'selected' : ''}" onclick="rsvp('${s.date}','no',this)">
+          <button class="rsvp-btn no ${myStatus === 'no' ? 'selected' : ''}" onclick="rsvp('${s.date}','${s.time}','no',this)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
             Out
           </button>
@@ -1891,12 +1891,12 @@ function toggleDetail(id) {
   document.getElementById(id).classList.toggle('open');
 }
 
-async function rsvp(dateStr, status, btnEl) {
+async function rsvp(dateStr, timeStr, status, btnEl) {
   if (!currentUser) { showToast('Select your name first'); return; }
   gtag('event', 'rsvp', { date: dateStr, status: status, team_member: currentUser });
 
-  // Find current status
-  const session = scheduleData.sessions.find(s => s.date === dateStr);
+  // Find current status — match on date AND time to disambiguate same-date sessions
+  const session = scheduleData.sessions.find(s => s.date === dateStr && s.time === timeStr);
   if (!session) return;
   const current = session.attendance[currentUser];
 
@@ -1912,18 +1912,18 @@ async function rsvp(dateStr, status, btnEl) {
   try {
     await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' }, // Apps Script requires text/plain to avoid CORS preflight
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'updateAttendance',
         token: API_TOKEN,
         name: currentUser,
         date: dateStr,
+        time: timeStr,
         status: newStatus
       })
     });
   } catch(err) {
     showToast('Sync failed — will retry');
-    // Revert
     session.attendance[currentUser] = current;
     render();
   }
