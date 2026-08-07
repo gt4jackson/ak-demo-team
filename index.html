@@ -2770,7 +2770,7 @@ function renderResources() {
           <div class="resource-body" id="resBody${i}">
             ${r.startPosition ? '<div class="resource-start"><strong>Starting Position:</strong> ' + escapeHtml(r.startPosition) + '</div>' : ''}
             ${moveCount ? '<ol class="step-list">' + r.moves.map(m => '<li class="step-item">' + escapeHtml(m) + '</li>').join('') + '</ol>' : ''}
-            ${r.videoUrl ? '<a href="' + escapeHtml(r.videoUrl) + '" target="_blank" rel="noopener noreferrer" class="video-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Watch Demo Video</a>' : ''}
+            ${r.videoUrl ? '<a href="' + escapeHtml(r.videoUrl) + '" target="_blank" rel="noopener noreferrer" class="video-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open Resource</a>' : ''}
           </div>
         </div>
       `;
